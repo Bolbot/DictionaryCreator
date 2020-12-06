@@ -9,6 +9,8 @@
 #include <typeinfo>
 #include <regex>
 #include <algorithm>
+#include <cpr/cpr.h>
+#include <nlohmann/json.hpp>
 
 #ifdef _WIN32
 #define __THIS_IS_WINDOWS__
@@ -16,6 +18,7 @@
 #define __THIS_IS_UNIX__
 #endif
 
+using json = nlohmann::json;
 namespace fs = std::filesystem;
 using CharType = fs::path::value_type;
 using StringType = fs::path::string_type;
@@ -39,101 +42,144 @@ StringType DefaultDictionaryName{ "dictionary.txt" };
 auto upper_case_letter = toupper;
 #endif
 
-/*
-template <typename Char>
-struct lower_case_char_traits : public std::char_traits<Char>
+namespace [[ deprecated ]] lowercase_traits
 {
-	static void assign(Char &dest, const Char &source)
+	template <typename Char>
+	struct lower_case_char_traits : public std::char_traits<Char>
 	{
-		constexpr if (std::is_same_v<Char, char>)
+		static void assign(Char &dest, const Char &source)
 		{
-			dest = std::tolower(source);
-		}
-		else
-		{
-			dest = std::towlower(source);
-		}
-	}
-
-	static Char *move(Char *dest, const Char *source, size_t size)
-	{
-		for (size_t i = 0; i != size; ++i)
-		{
-			assign(dest[i], source[i]);
-		}
-		return dest;
-	}
-
-	static Char *copy(Char *dest, const Char *source, size_t size)
-	{
-		return move(dest, source, size);
-	}
-
-	static bool eq(Char a, Char b)
-	{
-		if constexpr (std::is_same_v<Char, char>)
-		{
-			return tolower(a) == tolower(b);
-		}
-		else
-		{
-			return towlower(a) == towlower(b);
-		}
-	}
-
-	static bool lt(Char a, Char b)
-	{
-		if constexpr (std::is_same_v<Char, char>)
-		{
-			return tolower(a) < tolower(b);
-		}
-		else
-		{
-			return towlower(a) < towlower(b);
-		}
-	}
-
-	static int compare(const Char *a, const Char *b, size_t n)
-	{
-		for (; n != 0; ++a, ++b, --n)
-		{
-			if (lt(*a, *b))
+			if constexpr (std::is_same_v<CharType, char>)
 			{
-				return -1;
+				dest = std::tolower(source);
 			}
-			else if (lt(*b, *a))
+			else
 			{
-				return 1;
+				dest = std::towlower(source);
 			}
 		}
-		return 0;
-	}
 
-	static const Char *find(const Char *heystack, size_t size, Char needle)
-	{
-		for (size_t i = 0; i != n; ++i)
+		static Char *move(Char *dest, const Char *source, size_t size)
 		{
-			if (eq(heystack[i], needle))
+			for (size_t i = 0; i != size; ++i)
 			{
-				return &heystack[i];
+				assign(dest[i], source[i]);
+			}
+			return dest;
+		}
+
+		static Char *copy(Char *dest, const Char *source, size_t size)
+		{
+			return move(dest, source, size);
+		}
+
+		static bool eq(Char a, Char b)
+		{
+			if constexpr (std::is_same_v<Char, char>)
+			{
+				return tolower(a) == tolower(b);
+			}
+			else
+			{
+				return towlower(a) == towlower(b);
 			}
 		}
-		return nullptr;
-	}
-};
 
-template <typename Char, typename Traits, typename AnotherChar>
-std::basic_ostream<Char, Traits> &operator<<(std::basic_ostream<Char, Traits> &out, const std::basic_string<AnotherChar> &str)
-{
-	return out.write(str.data(), str.size());
+		static bool lt(Char a, Char b)
+		{
+			if constexpr (std::is_same_v<Char, char>)
+			{
+				return tolower(a) < tolower(b);
+			}
+			else
+			{
+				return towlower(a) < towlower(b);
+			}
+		}
+
+		static int compare(const Char *a, const Char *b, size_t n)
+		{
+			for (; n != 0; ++a, ++b, --n)
+			{
+				if (lt(*a, *b))
+				{
+					return -1;
+				}
+				else if (lt(*b, *a))
+				{
+					return 1;
+				}
+			}
+			return 0;
+		}
+
+		static const Char *find(const Char *heystack, size_t size, Char needle)
+		{
+			for (size_t i = 0; i != size; ++i)
+			{
+				if (eq(heystack[i], needle))
+				{
+					return &heystack[i];
+				}
+			}
+			return nullptr;
+		}
+	};
+
+	template <typename Char, typename Traits, typename AnotherChar>
+	std::basic_ostream<Char, Traits> &operator<<(std::basic_ostream<Char, Traits> &out, const std::basic_string<AnotherChar> &str)
+	{
+		return out.write(str.data(), str.size());
+	}
 }
-*/
 
+// Further TODO: implement the part of speech as
+// (noun):	Definition of this word as a noun
+// (adjective):	Definition of this word as an adjective
+//
+// More crucial TODO: implement portability, that is at least comment extended toolkit where it's not avaliable for some reasons (WINDOWS)
+//
+// Distant TODO: implement encounter counter and possibility to sort by it
+//
+// Most distant TODO: implement task-based or thread-pool-based concurrent beforehand web-api processing of non-capitalized words
+
+template <typename J>
+std::set<StringType> dig_to_definition(const J &json_table)
+{
+	std::set<StringType> definitions;
+
+	if (json_table.contains("definition"))
+	{
+		definitions.emplace(json_table["definition"]);
+	}
+
+	for (const auto &level: json_table)
+	{
+		if (level.is_object() || level.is_array())
+		{
+			auto current = dig_to_definition(level);
+			definitions.merge(current);
+		}
+	}
+
+	return definitions;
+}
+
+std::set<StringType> find_word_definition(const StringType &word)
+{
+	StringType dictionaryapi_request{ "https://api.dictionaryapi.dev/api/v2/entries/en/" };
+	StringType exact_request_address = dictionaryapi_request + word;
+
+	cpr::Response response = cpr::Get(cpr::Url{ exact_request_address }, cpr::VerifySsl(false));
+
+	auto some_json = json::parse(response.text);
+
+	return dig_to_definition(some_json);
+}
 
 class DictionaryCreator
 {
-	using DictionaryEntryType =	StringType;
-		//std::basic_string<CharType, lower_case_char_traits<CharType>>;
+	using DictionaryEntryType = StringType;
 #ifdef __THIS_IS_WINDOWS__
 	std::basic_regex<CharType> word_pattern{ LR"([[:alpha:]]{2,})" };
 	std::basic_regex<CharType> name_pattern{ LR"([^\s\.-]+\s*([A-Z][a-z]+))" };
@@ -266,12 +312,24 @@ public:
 
 		for (auto const &letter : dictionary)
 		{
-			file_output << "\n\n\t" << letter.first << "\n---------------\n";
-			for (auto const &entry : letter.second)
+			if (!letter.second.empty())
 			{
-				file_output << entry << "\n";
+				file_output << "\n\n\t" << letter.first << "\n---------------\n";
+				for (auto const &entry : letter.second)
+				{
+					file_output << entry << "\n";
+					auto definitions = find_word_definition(entry);
+					for (const auto &d: definitions)
+					{
+						file_output << "\t" << d << "\n";
+					}
+					if (!definitions.empty())
+					{
+						file_output << std::endl;
+					}
+				}
+				file_output << "---------------\n";
 			}
-			file_output << "---------------\n";
 		}
 	}
 
@@ -316,7 +374,7 @@ int wmain
 {
 	setlocale(LC_ALL, "Russian_Russia.1251");
 
-	output << "DictionaryCreator 0.4\n";
+	output << "DictionaryCreator 0.5\n";
 
 	if (argc > 1)
 	{
