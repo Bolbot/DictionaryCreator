@@ -11,6 +11,7 @@
 
 #include "utils.h"
 #include "connections.h"
+#include "regex_parser.h"
 
 namespace dict
 {
@@ -99,8 +100,11 @@ namespace dict
 	{
 		using DictionaryEntryType = StringType;
 		std::regex word_pattern{ R"([[:alpha:]]{2,})" };
-		std::regex name_pattern{ R"([^\s\.-]+\s*([A-Z][a-z]+))" };
-		std::regex name_at_the_start{ R"(^([A-Z][a-z]+).*$)" };
+		std::regex name_pattern{ R"(([,[:alpha:]]+[[:space:]])+?([A-Z][a-z]+))" };
+		//std::regex name_pattern{ R"([^\s\.-]+\s*?([A-Z][a-z]+))" };		// fails to recognize two consecutive words
+		const char *const name_lookbehind_pattern = R"((?<=[^.!?]\s)([A-Z][a-z]+))";
+		std::regex name_at_the_start{ R"(^([A-Z][a-z]+){1}\s?.*$)" };
+		pcre_parser::RegexParser proper_nouns_extractor;
 		StringType terminating_characters{ ".!?" };
 	public:
 		DictionaryCreator(FSStringType dir = FSStringType{});
@@ -115,6 +119,8 @@ namespace dict
 
 		void export_dictionary(StringType dest_name = StringType{ "output_of_DictionaryCreator.txt" },
 					export_data export_options = export_data::AllDefinitions);
+
+		void export_proper_nouns(StringType dest_name = StringType{ "proper_nouns_by_DictionaryCreator.txt" });
 
 		void remove_proper_nouns();
 

@@ -2,3 +2,7 @@ Build/
 build/
 bUILD/
 BUILD/
+linux_build/
+windows_build/
+*.ts
+*.test

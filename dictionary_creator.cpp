@@ -1,5 +1,8 @@
 #include "dictionary_creator.h"
 
+// FOR DEBUG
+#include <thread>
+
 
 StringType dict::find_word_definition(const StringType &word)
 {
@@ -17,7 +20,7 @@ std::set<StringType> dict::find_word_definitions(const StringType &word)
 
 	auto response = connections::get(exact_request_address);
 
-	auto some_json = json::parse(response);
+	auto some_json = parse_json(response);
 
 	return set_of_definitions(some_json);
 }
@@ -26,12 +29,12 @@ std::set<std::pair<StringType, std::set<StringType>>> dict::find_word_per_part_o
 {
 	auto response = connections::lookup_online_dictionary(word);
 
-	auto some_json = json::parse(response);
+	auto some_json = parse_json(response);
 
 	return set_of_part_of_speech_definitions(some_json);
 }
 
-dict::DictionaryCreator::DictionaryCreator(FSStringType dir) : directory{ dir }
+dict::DictionaryCreator::DictionaryCreator(FSStringType dir) : directory{ dir }, proper_nouns_extractor{ name_lookbehind_pattern }
 {
 	output << "Constructed a dictionary creator in directory \"" << stdstring(directory) << "\"\n";
 }
@@ -100,28 +103,34 @@ void dict::DictionaryCreator::parse_to_dictionary(FileInputStream file_input)
 
 		while (std::getline(file_input, current_string))
 		{
+			if (current_string.back() == 13)
+			{
+				current_string.pop_back();
+			}
+
 			std::smatch matches;
 
 			for (auto it = std::sregex_iterator(current_string.begin(), current_string.end(), word_pattern);
 				it != std::sregex_iterator{}; ++it)
-			{
+			{	
 				matches = *it;
 				dictionary[toupper(matches[0].str().front())].emplace(matches[0].str());
 			}
 
-			for (auto it = std::sregex_iterator(current_string.begin(), current_string.end(), name_pattern);
-				it != std::sregex_iterator{}; ++it)
+			auto found_names = proper_nouns_extractor.all_matches(current_string);
+			for (auto &name: found_names)
 			{
-				matches = *it;
+				proper_nouns[name.front()].emplace(std::move(name));
+			}
+
+			if (previous_string_terminated == false && std::regex_match(current_string, matches, name_at_the_start))
+			{
 				proper_nouns[matches[1].str().front()].emplace(matches[1].str());
 			}
 
-			if (std::regex_match(current_string, matches, name_at_the_start))
-			{
-				proper_nouns[matches[1].str().front()].emplace(matches[1].str());
-			}
-
-			if (current_string.find_last_of(terminating_characters) > current_string.find_last_not_of(terminating_characters))
+			if (auto last_terminator = current_string.find_last_of(terminating_characters);
+				last_terminator != std::string::npos &&
+				last_terminator > current_string.find_last_not_of(terminating_characters))
 			{
 				previous_string_terminated = true;
 			}
@@ -166,6 +175,31 @@ void dict::DictionaryCreator::export_dictionary(StringType dest_name, export_dat
 	}
 }
 
+void dict::DictionaryCreator::export_proper_nouns(StringType dest_name)
+{
+	FileOutputStream file_output(dest_name);
+
+	if (file_output.good())
+	{
+		output << "Exporting proper nouns to " << dest_name << std::endl;
+	}
+	else
+	{
+		output << "Failed to export proper nouns to " << dest_name << std::endl;
+		return;
+	}
+
+	for (const auto &letter : proper_nouns)
+	{
+		file_output << letter.first << ":\n";
+		for (const auto &w: letter.second)
+		{
+			file_output << "\t" <<  w << "\n";
+		}
+		file_output << std::endl;
+	}
+}
+
 void dict::DictionaryCreator::remove_proper_nouns()
 {
 	for (const auto &pn : proper_nouns)
@@ -178,18 +212,13 @@ void dict::DictionaryCreator::remove_proper_nouns()
 		}
 	}
 
-	// TODO: supply this in separate file maybe
-	output << "Had to remove from the dictionary following proper nouns:\n";
+	size_t proper_nouns_number = 0;
 	for (const auto &letter : proper_nouns)
 	{
-		output << letter.first << ": ";
-		for (const auto &w : letter.second)
-		{
-			output << "\t" << w << "\n";
-		}
-		output << std::endl;
+		proper_nouns_number += letter.second.size();
 	}
-	
+
+	output << "Had to remove from the dictionary " << proper_nouns_number << " proper nouns.\n";
 }
 
 void dict::print_content(FileOutputStream &file_output, StringType entry, dict::export_data export_options)
@@ -222,10 +251,17 @@ void dict::print_content(FileOutputStream &file_output, StringType entry, dict::
 			auto set = find_word_per_part_of_speech_definitions(entry);
 			for (const auto &pair: set)
 			{
+				file_output << "\tAs " << pair.first << ":\n";
+				size_t i = 0;
 				for (const auto &definition: pair.second)
 				{
-					file_output << "\t(" << pair.first << "):\t"
-						<< definition << "\n";
+					++i;
+					file_output << "\t\t\t\t";
+					if (pair.second.size() > 1)
+					{
+				        	file_output << i << ") ";
+					}
+					file_output << definition << "\n";
 				}
 			}
 			if (!set.empty())

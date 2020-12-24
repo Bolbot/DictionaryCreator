@@ -2,7 +2,14 @@
 #define __CONNECTIONS_H__
 
 #include "utils.h"
-#include <cpr/cpr.h>
+
+#define USING_CURL_FOR_CONNECTIONS 1
+
+#if __has_include(<curl/curl.h>) && USING_CURL_FOR_CONNECTIONS
+#include <curl/curl.h>
+#define __CURL_IS_AVALIABLE__
+#endif
+
 
 namespace connections
 {
@@ -10,5 +17,6 @@ namespace connections
 
 	StringType lookup_online_dictionary(const StringType &word);
 }
+
 
 #endif

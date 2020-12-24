@@ -11,13 +11,30 @@
 #include <string>
 #include <codecvt>
 #include <iostream>
+
+#if __has_include(<nlohmann/json.hpp>)
 #include <nlohmann/json.hpp>
+#define __NLOHMANN_JSON_IS_AVALIABLE__
+#endif
 
 namespace fs = std::filesystem;
 using FSStringType = fs::path::string_type;
 using fsCharType = fs::path::value_type;
-using json = nlohmann::json;
 using StringType = std::string;
+#ifdef __NLOHMANN_JSON_IS_AVALIABLE__
+using json = nlohmann::json;
+template <typename InputType>
+auto parse_json(InputType input)
+{
+	return json::parse(input);
+}
+#else
+template <typename InputType>
+StringType parse_json(InputType input)
+{
+	return "NLOKNANN json feature is not avaliable";
+}
+#endif
 extern std::ostream &output;
 extern std::istream &input;
 using FileInputStream = std::ifstream;
@@ -39,7 +56,6 @@ std::string stdstring(const std::string &s) noexcept;
 #ifdef __THIS_IS_WINDOWS__
 std::string stdstring(const std::wstring &ws) noexcept;
 #endif
-
 
 
 
