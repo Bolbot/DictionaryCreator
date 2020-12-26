@@ -34,6 +34,28 @@ std::set<std::pair<StringType, std::set<StringType>>> dict::find_word_per_part_o
 	return set_of_part_of_speech_definitions(some_json);
 }
 
+dict::Entry::Entry(WordType the_word) : word{ the_word }
+{}
+
+void dict::Entry::find_definitions()
+{
+	auto response = connections::lookup_online_dictionary(word);
+
+	auto some_json = parse_json(response);
+
+	definitions = part_of_speech_definitions_map(some_json);
+}
+
+WordType dict::Entry::get_word() const
+{
+	return word;
+}
+
+const dict::Entry::POS_definitions &dict::Entry::get_definitions() const
+{
+	return definitions;
+}
+
 dict::DictionaryCreator::DictionaryCreator(FSStringType dir) : directory{ dir }, proper_nouns_extractor{ name_lookbehind_pattern }
 {
 	output << "Constructed a dictionary creator in directory \"" << stdstring(directory) << "\"\n";
@@ -103,11 +125,13 @@ void dict::DictionaryCreator::parse_to_dictionary(FileInputStream file_input)
 
 		while (std::getline(file_input, current_string))
 		{
-			if (current_string.back() == 13)
-			{
-				current_string.pop_back();
-			}
+			remove_crlf(current_string);
 
+			if (current_string.empty() || current_string.size() < 3)
+			{
+				continue;
+			}
+			
 			std::smatch matches;
 
 			for (auto it = std::sregex_iterator(current_string.begin(), current_string.end(), word_pattern);
@@ -249,26 +273,38 @@ void dict::print_content(FileOutputStream &file_output, StringType entry, dict::
 	case export_data::AllDefinitionsPerPartOfSpeech:
 		{
 			auto set = find_word_per_part_of_speech_definitions(entry);
-			for (const auto &pair: set)
-			{
-				file_output << "\tAs " << pair.first << ":\n";
-				size_t i = 0;
-				for (const auto &definition: pair.second)
-				{
-					++i;
-					file_output << "\t\t\t\t";
-					if (pair.second.size() > 1)
-					{
-				        	file_output << i << ") ";
-					}
-					file_output << definition << "\n";
-				}
-			}
 			if (!set.empty())
 			{
+				for (const auto &pair : set)
+				{
+					file_output << "\t" << pair.first << ":\n";
+					size_t i = 0;
+					for (const auto &definition : pair.second)
+					{
+						++i;
+						file_output << "\t\t\t\t";
+						if (pair.second.size() > 1)
+						{
+							file_output << i << ") ";
+						}
+						file_output << definition << "\n";
+					}
+				}
 				file_output << std::endl;
+			}
+			else
+			{
+				file_output << "\t\t\t\t----Undefined----" << std::endl;
 			}
 			break;
 		}
+	}
+}
+
+void dict::remove_crlf(StringType &string)
+{
+	while (!string.empty() && (string.back() == 0xA || string.back() == 0xD))
+	{
+		string.pop_back();
 	}
 }

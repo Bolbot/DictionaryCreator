@@ -16,6 +16,8 @@ namespace connections
 	StringType get(const StringType &URI);
 
 	StringType lookup_online_dictionary(const StringType &word);
+
+	StringType lookup_online_dictionary(const WordType &word);
 }
 
 

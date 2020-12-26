@@ -46,7 +46,9 @@ add_library(connections STATIC "connections.cpp" "connections.h")
 find_package(CURL)
 if (CURL_FOUND)
 message("Curl found, using curl for connections")
-#target_link_libraries(connections PUBLIC CURL::libcurl)	# is this thing redundant and causing all the troubles?
+if (UNIX)
+target_link_libraries(connections PUBLIC CURL::libcurl)	# is this thing redundant and causing all the troubles? looks like it's necessary for unix though
+endif (UNIX)
 else (CURL_FOUND)
 message("Curl could not be found")
 endif (CURL_FOUND)
@@ -56,11 +58,14 @@ target_link_libraries(connections PUBLIC utils)
 
 
 add_library(regex_parser STATIC "regex_parser.cpp" "regex_parser.h")
-#target_link_libraries(regex_parser PUBLIC pcre)
+if (UNIX)
+target_link_libraries(regex_parser PUBLIC pcre)
+endif (UNIX)
 
 target_link_libraries(dictionary_creator PUBLIC connections regex_parser)
 
 #target_link_libraries(dictionary_creator PUBLIC utils)
+#redundant since utils is connected to connections already
 
 target_link_libraries("${PROJECT_NAME}" PUBLIC dictionary_creator)
 

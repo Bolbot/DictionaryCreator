@@ -6,3 +6,4 @@ linux_build/
 windows_build/
 *.ts
 *.test
+output_*.txt

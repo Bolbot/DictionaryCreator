@@ -15,7 +15,6 @@
 
 namespace dict
 {
-	
 	template <typename J>
 	std::optional<StringType> single_definition_impl(const J &json_table)
 	{
@@ -88,20 +87,56 @@ namespace dict
 		return set;
 	}
 
+	template <typename J>
+	std::map<StringType, std::set<StringType>> part_of_speech_definitions_map(const J &json_table)
+	{
+		std::map<StringType, std::set<StringType>> map;
+
+		if (json_table.contains("partOfSpeech"))
+		{
+			StringType current_part_of_speech = json_table["partOfSpeech"];
+			auto current_definitions = set_of_definitions(json_table);
+			map[current_part_of_speech] = std::move(current_definitions);
+		}
+
+		for (const auto &level: json_table)
+		{
+			if (level.is_object() || level.is_array())
+			{
+				auto current = part_of_speech_definitions_map(level);
+				map.merge(current);
+			}
+		}
+
+		return map;
+	}
+
 	StringType find_word_definition(const StringType &word);
 
 	std::set<StringType> find_word_definitions(const StringType &word);
 
 	std::set<std::pair<StringType, std::set<StringType>>> find_word_per_part_of_speech_definitions(const StringType &word);
+
+	class Entry
+	{
+	public:
+		using POS_definitions = std::map<StringType, std::set<StringType>>;
+		Entry(WordType the_word = WordType{});
+		void find_definitions();
+		WordType get_word() const;
+		const POS_definitions &get_definitions() const;
+	private:
+		WordType word;
+		POS_definitions definitions;
+	};
 	
 	enum class export_data { OneDefinition, AllDefinitions, AllDefinitionsPerPartOfSpeech };
 
 	class DictionaryCreator
 	{
 		using DictionaryEntryType = StringType;
-		std::regex word_pattern{ R"([[:alpha:]]{2,})" };
+		std::regex word_pattern{ R"([[:alpha:]]{3,})" };
 		std::regex name_pattern{ R"(([,[:alpha:]]+[[:space:]])+?([A-Z][a-z]+))" };
-		//std::regex name_pattern{ R"([^\s\.-]+\s*?([A-Z][a-z]+))" };		// fails to recognize two consecutive words
 		const char *const name_lookbehind_pattern = R"((?<=[^.!?]\s)([A-Z][a-z]+))";
 		std::regex name_at_the_start{ R"(^([A-Z][a-z]+){1}\s?.*$)" };
 		pcre_parser::RegexParser proper_nouns_extractor;
@@ -134,6 +169,8 @@ namespace dict
 	};
 
 	void print_content(FileOutputStream &file_output, StringType entry, export_data export_options);
+
+	void remove_crlf(StringType &string);
 }
 
 #endif

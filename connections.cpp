@@ -54,6 +54,13 @@ public:
 		if (valid_state)
 		{
 			valid_state = (curl_easy_perform(handle) == CURLE_OK);
+			long status;
+			valid_state = (curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &status) == CURLE_OK);
+
+			if (!valid_state || status != 200)
+			{
+				response = "Web resourse is unavaliable";
+			}
 		}
 	}
 	~CurlEasyHandle()
@@ -97,6 +104,14 @@ StringType connections::get(const StringType &URI)
 }
 
 StringType connections::lookup_online_dictionary(const StringType &word)
+{
+	StringType dictionaryapi_request{ "https://api.dictionaryapi.dev/api/v2/entries/en/" };
+	StringType exact_request_address = dictionaryapi_request + word;
+
+	return connections::get(exact_request_address);
+}
+
+StringType connections::lookup_online_dictionary(const WordType &word)
 {
 	StringType dictionaryapi_request{ "https://api.dictionaryapi.dev/api/v2/entries/en/" };
 	StringType exact_request_address = dictionaryapi_request + word;

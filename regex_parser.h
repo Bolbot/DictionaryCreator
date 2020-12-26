@@ -16,6 +16,10 @@
 #include <sstream>
 #include <exception>
 
+#ifndef __PCRE_IS_AVALIABLE__
+static_assert(false, "PCRE_IN_NOT_AVALIABLE");
+#endif
+
 namespace pcre_parser
 {
 	using matches = std::set<std::string>;

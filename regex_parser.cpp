@@ -94,6 +94,4 @@ pcre_parser::matches pcre_parser::RegexParser::all_matches(const std::string &so
 	return { "PCRE is not avaliable" };
 }
 
-
-
 #endif

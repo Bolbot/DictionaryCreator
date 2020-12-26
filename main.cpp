@@ -4,30 +4,14 @@
 #include "utils.h"
 #include "dictionary_creator.h"
 
-
-// Short TO-DO: fix not recognizing the last word of text file as a name when it is DONE
-// Also: fix not recognizing multiword names as names, that is:
-// 	must be:	Antonio Margheritti =====> name Antonio; name Margheritti
-//	currently:	Antonio Margheritti =====> name Antonio; word margheritti
-//	TO-DO: fix this (probably better to fix this first, cause then last name ignoration is likely to be fixed also DONE
-// Short fix: do NOT take the first word int text file as a proper noun even if it's capitalized, TO-DO - this fix - DONE
-// Necessary TO-DO: fix the regular expression for the names DONE
+// DO NOT!!! Don't test web lookup on huge files because this leads to 403 error and abortion of application
+// TO-DO:	check HTTP status before procceeding with any presumable response content
+//		provide error messages in case of unsuccessfull response status upon lookup attempts	DONE
 //
-// Further TO-DO: implement the part of speech as
-// (noun):	Definition of this word as a noun
-// (adjective):	Definition of this word as an adjective
-// TO-DO MAYBE provide another type of output:
-// As noun:	Definition of this word as noun. It's the only one here, so in the same string.
-// As verb:
-// 		1) First definition as verb
-// 		2) Second definition as verb etc.
-// As adjective:	Definition as adjective, if there's a lot of definitions, this should be more convenient
-// DONE
-//
-// Portability TO-DO: provide portable alternative to cpr for Windows since issues DONE
-// Issues: cpr.dll cannot be found and causing built program to fail upon the execution start
-//
-// Short TODO: fix regular words capitalization - maybe use string traits from optional_utils for storing words
+// Reasonable TODO: store definitions alongside the words, also provide the option for disabling it
+// Provide an Entry class for words with definitions and store like { lowcase string type, map<part of speech, set of definitions> }
+// Implement deferred lookup not to abuse the web api
+// Revise the DictionaryCreator class to store words as Entry
 //
 // Distant TODO: implement encounter counter and possibility to sort by it
 //
@@ -40,6 +24,8 @@ void tests()
 	bool test_json = false;
 	bool test_connections = true;
 	bool test_regex = false;
+	bool test_lowercase_words = false;
+	bool test_Entry_class = false;
 
 	if (test_json)
 	{
@@ -47,8 +33,7 @@ void tests()
 
 		try
 		{
-#ifdef __NLOHMANN_JSON_IS_AVALIABLE__
-			auto some_json = json::parse(must_be_json);
+			auto some_json = parse_json(must_be_json);
 
 			auto definition = dict::single_definition(some_json);
 			output << "One definition is: " << definition << std::endl;
@@ -73,9 +58,12 @@ void tests()
 				}
 			}
 			output << std::endl;
-#else
-			output << "nlohmann json feature is unavaliable\n";
-#endif
+
+			auto irrelevant = parse_json(connections::get("https://yahoo.com"));
+			auto irrdef = dict::single_definition(irrelevant);
+			output << "\n\nIRRELEVANT page. Single definition: " << irrdef << std::endl;
+			auto irrpos = dict::set_of_part_of_speech_definitions(irrelevant);
+			output << "Set of part of speech for irrelevant has size: " << irrpos.size() << std::endl;
 		}
 		catch (std::exception &e)
 		{
@@ -96,6 +84,12 @@ void tests()
 		
 		auto https = connections::get("https://api.dictionaryapi.dev/api/v2/entries/en/hello");
 		output << "https: " << (https.size() > 100 ? "successfull" : https.data()) << std::endl;
+
+		auto nonexistent = connections::get("https://nonexis.tent.pa.ge.com");
+		output << "nonexistent page: " << nonexistent << std::endl;
+
+		auto notfound = connections::get("https://google.com/pagecan/notbe.found");
+		output << "not found: " << notfound << std::endl;
 	}
 
 	if (test_regex)
@@ -118,6 +112,38 @@ void tests()
 		std::cout << std::endl;
 	}
 
+	if (test_lowercase_words)
+	{
+		WordType word = "The Great Initital StrinG";
+		std::cout << "Type any strings or ! to terminate\n";
+		while (word[0] != '!')
+		{
+			getline(input, word);
+			output << word << std::endl;
+		}
+	}
+
+	if (test_Entry_class)
+	{
+		WordType word{ "FRAME" };
+		dict::Entry entry(word);
+		output << entry.get_word() << std::endl;
+		output << "Size of entry with no definitions is " << sizeof(entry) << std::endl;
+		entry.find_definitions();
+		output << "Size of entry with definitions is " << sizeof(entry) << std::endl;
+		for (const auto &[pos,definitions]: entry.get_definitions())
+		{
+			output << "As " << pos << std::endl;
+			for (const auto &d: definitions)
+			{
+				output << "\t\t" << d << std::endl;
+			}
+			if (definitions.size() > 1)
+			{
+				output << std::endl;
+			}
+		}
+	}
 }
 
 #ifdef __unix__
@@ -143,8 +169,22 @@ int wmain
 	
 	dict::DictionaryCreator dc(current_directory);
 	dc.request_the_extensions();
+
+	auto start = std::chrono::steady_clock::now();
+
 	dc.parse_all_files();
+
+	auto parsed = std::chrono::steady_clock::now();
+
 	dc.export_dictionary("output_DICTIONARY.txt", dict::export_data::AllDefinitionsPerPartOfSpeech);
+
+	auto exported = std::chrono::steady_clock::now();
+
+	FileOutputStream benchmark("benchmark_results.txt");
+
+	benchmark << "Parsed in " << std::chrono::duration_cast<std::chrono::milliseconds>(parsed - start).count() << " ms\n"
+		<< "Exported in " << std::chrono::duration_cast<std::chrono::milliseconds>(exported - parsed).count() << " ms" << std::endl;
+
 	dc.export_proper_nouns("output_ProperNouns_by_DICTIONARY.txt");
 
 	return 0;
