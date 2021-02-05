@@ -7,3 +7,4 @@ windows_build/
 *.ts
 *.test
 output_*.txt
+sweep.sh

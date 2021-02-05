@@ -3,50 +3,46 @@
 // FOR DEBUG
 #include <thread>
 
-
-StringType dict::find_word_definition(const StringType &word)
-{
-	auto response = connections::lookup_online_dictionary(word);
-
-	auto some_json = json::parse(response);
-
-	return single_definition(some_json);
-}
-
-std::set<StringType> dict::find_word_definitions(const StringType &word)
-{
-	StringType dictionaryapi_request{ "https://api.dictionaryapi.dev/api/v2/entries/en/" };
-	StringType exact_request_address = dictionaryapi_request + word;
-
-	auto response = connections::get(exact_request_address);
-
-	auto some_json = parse_json(response);
-
-	return set_of_definitions(some_json);
-}
-
-std::set<std::pair<StringType, std::set<StringType>>> dict::find_word_per_part_of_speech_definitions(const StringType &word)
-{
-	auto response = connections::lookup_online_dictionary(word);
-
-	auto some_json = parse_json(response);
-
-	return set_of_part_of_speech_definitions(some_json);
-}
-
-dict::Entry::Entry(WordType the_word) : word{ the_word }
+dict::Entry::Entry(WordType<CharType> the_word) : word{ the_word }
 {}
 
-void dict::Entry::find_definitions()
+void dict::Entry::increment() const
 {
-	auto response = connections::lookup_online_dictionary(word);
+	++encounters;
+}
+
+size_t dict::Entry::get_counter() const
+{
+	return encounters;
+}
+
+dict::Entry::Entry(StringType the_word)
+{
+	word.reserve(the_word.size());
+	for (auto c: the_word)
+	{
+		word.push_back(c);
+	}
+}
+
+void dict::Entry::find_definitions() const
+{
+	std::wstring unconverted_word;
+	unconverted_word.reserve(word.size());
+	for (auto c : word)
+	{
+		unconverted_word.push_back(c);
+	}
+	std::string converted_word = converter_from_wstring.to_bytes(unconverted_word);
+
+	auto response = connections::lookup_online_dictionary(converted_word.data());
 
 	auto some_json = parse_json(response);
 
 	definitions = part_of_speech_definitions_map(some_json);
 }
 
-WordType dict::Entry::get_word() const
+WordType<dict::Entry::CharType> dict::Entry::get_word() const
 {
 	return word;
 }
@@ -56,127 +52,118 @@ const dict::Entry::POS_definitions &dict::Entry::get_definitions() const
 	return definitions;
 }
 
-dict::DictionaryCreator::DictionaryCreator(FSStringType dir) : directory{ dir }, proper_nouns_extractor{ name_lookbehind_pattern }
+bool dict::operator<(const dict::Entry &a, const dict::Entry &b)
 {
-	output << "Constructed a dictionary creator in directory \"" << stdstring(directory) << "\"\n";
+	return a.get_word() < b.get_word();
 }
 
-void dict::DictionaryCreator::request_the_extensions()
+const std::vector<dict::DictionaryCreator::SorterType> dict::DictionaryCreator::sorters
 {
-	auto possible_extensions = get_possible_extensions();
+	[] (const Entry *a, const Entry *b) { return a->get_counter() > b->get_counter(); },
+	[] (const Entry *a, const Entry *b) { return a->get_counter() < b->get_counter(); },
+	[] (const Entry *a, const Entry *b) { return a->get_word().size() > b->get_word().size();  },
+	[] (const Entry *a, const Entry *b) { return a->get_word().size() < b->get_word().size();  },
+	// TODO: below is lazy unaccurate implementaion of most and least ambiguous words, reimplement
+	[] (const Entry *a, const Entry *b) { return a->get_definitions().size() > b->get_definitions().size(); },
+	[] (const Entry *a, const Entry *b) { return a->get_definitions().size() < b->get_definitions().size(); }
+};
 
-	output << "There are files of " << possible_extensions.size() << " extensions:\n";
+dict::DictionaryCreator::DictionaryCreator() : proper_nouns_extractor{ name_lookbehind_pattern }
+{}
 
-	for (const auto &s : possible_extensions)
+void dict::DictionaryCreator::parse_to_dictionary(InputStream &&file_input)
+{
+
+	bool previous_string_terminated = true;
+	StringType current_string;
+
+	while (std::getline(file_input, current_string))
 	{
-		output << "\t" << stdstring(s) << std::endl;
-	}
-	
-	auto input_terminator_string = "!";
-	output << "Specify which of them to parse for the dictionary.\nExample: .txt or simply txt\n"
-			<< "Use " << input_terminator_string << " to terminate input\n";
-	StringType ext;
-	while (input >> ext && ext != input_terminator_string)
-	{
-		if (*ext.begin() != '.')
+		remove_crlf(current_string);
+
+		if (current_string.empty() || current_string.size() < minimal_substantial_string_length)
 		{
-			ext.insert(ext.begin(), '.');
+			continue;
 		}
-		text_files_extensions.insert(to_fsstring(ext));
-	}
-
-	output << "Parsing files of following extensions:\n";
-	for (const auto &s : text_files_extensions)
-	{
-		output << "\t" << stdstring(s) << std::endl;
-	}
-}
-
-std::set<FSStringType> dict::DictionaryCreator::get_possible_extensions() const
-{
-	std::set<FSStringType> extensions;
+#if __STRINGTYPE_IS_WSTRING__
+		using IteratorType = std::wstring::const_iterator;
+#else
+		using IteratorType = std::string::const_iterator;
+#endif
 			
-	for (auto &p : fs::directory_iterator(directory))
-	{
-		extensions.emplace(p.path().extension().c_str());
-	}
+		std::match_results<IteratorType> matches;
 
-	return extensions;
-}
+		for (auto it = std::regex_iterator<IteratorType>(current_string.begin(), current_string.end(), word_pattern);
+			it != std::regex_iterator<IteratorType>{}; ++it)
+		{	
+			matches = *it;
+			auto first_letter = matches[0].str().front();
 
-void dict::DictionaryCreator::parse_all_files()
-{
-	for (auto &p : fs::directory_iterator(directory))
-	{
-		if (text_files_extensions.find(p.path().extension()) != text_files_extensions.end())
-		{
-			FileInputStream current_file(p.path());
-			parse_to_dictionary(std::move(current_file));
-		}
-	}
-}
-
-void dict::DictionaryCreator::parse_to_dictionary(FileInputStream file_input)
-{
-	if (file_input)
-	{
-		bool previous_string_terminated = true;
-		StringType current_string;
-
-		while (std::getline(file_input, current_string))
-		{
-			remove_crlf(current_string);
-
-			if (current_string.empty() || current_string.size() < 3)
+			if (auto word = dictionary[lowercase_letter(first_letter)].find(matches[0].str());
+				word == dictionary[lowercase_letter(first_letter)].end())
 			{
-				continue;
-			}
-			
-			std::smatch matches;
-
-			for (auto it = std::sregex_iterator(current_string.begin(), current_string.end(), word_pattern);
-				it != std::sregex_iterator{}; ++it)
-			{	
-				matches = *it;
-				dictionary[toupper(matches[0].str().front())].emplace(matches[0].str());
-			}
-
-			auto found_names = proper_nouns_extractor.all_matches(current_string);
-			for (auto &name: found_names)
-			{
-				proper_nouns[name.front()].emplace(std::move(name));
-			}
-
-			if (previous_string_terminated == false && std::regex_match(current_string, matches, name_at_the_start))
-			{
-				proper_nouns[matches[1].str().front()].emplace(matches[1].str());
-			}
-
-			if (auto last_terminator = current_string.find_last_of(terminating_characters);
-				last_terminator != std::string::npos &&
-				last_terminator > current_string.find_last_not_of(terminating_characters))
-			{
-				previous_string_terminated = true;
+				dictionary[lowercase_letter(first_letter)].emplace(matches[0].str());
 			}
 			else
 			{
-				previous_string_terminated = false;
+				word->increment();
 			}
+		}
+
+#if __STRINGTYPE_IS_WSTRING__
+		auto converted_current_string = converter_from_wstring.to_bytes(current_string);
+		auto found_names = proper_nouns_extractor.all_matches(converted_current_string);
+		for (auto &name : found_names)
+		{
+			auto converted_name = converter_to_wstring.from_bytes(name);
+			proper_nouns[converted_name.front()].emplace(std::move(converted_name));
+		}
+#else
+		auto found_names = proper_nouns_extractor.all_matches(current_string);
+		for (auto &name: found_names)
+		{
+			proper_nouns[name.front()].emplace(std::move(name));
+		}
+#endif
+
+		if (previous_string_terminated == false && std::regex_match(current_string, matches, name_at_the_start))
+		{
+			proper_nouns[matches[1].str().front()].emplace(matches[1].str());
+		}
+
+		if (auto last_terminator = current_string.find_last_of(terminating_characters);
+			last_terminator != std::string::npos &&
+			last_terminator > current_string.find_last_not_of(terminating_characters))
+		{
+			previous_string_terminated = true;
+		}
+		else
+		{
+			previous_string_terminated = false;
 		}
 	}
 }
 
-void dict::DictionaryCreator::export_dictionary(StringType dest_name, export_data export_options)
+void dict::DictionaryCreator::define_all_words()
 {
-	FileOutputStream file_output(dest_name);
+	remove_proper_nouns();
 
-	if (file_output.good())
+	for (auto &[letter, words]: dictionary)
 	{
-		output << "Exporting dictionary to " << dest_name << std::endl;
+		for (auto &word: words)
+		{
+			word.find_definitions();
+		}
 	}
-	else
+
+	dictionary_defined = true;
+}
+
+void dict::DictionaryCreator::export_dictionary(OutputStream &&file_output, export_data export_options)
+{
+	if (!file_output.good())
 	{
-		output << "Cannot export dictionary to " << dest_name << std::endl;
+		error_output << "CAN NOT export dictionary, file output isn't good\n";
 		return;
 	}
 
@@ -189,8 +176,8 @@ void dict::DictionaryCreator::export_dictionary(StringType dest_name, export_dat
 			file_output << "\n\n\t" << letter.first << "\n---------------\n";
 			for (auto const &entry : letter.second)
 			{
-				file_output << entry << "\n";
-
+				//file_output << entry.get_word() << "\n";
+				// TODO: provide another overload in utils.h for different underlying char types
 
 				print_content(file_output, entry, export_options);
 			}
@@ -199,17 +186,13 @@ void dict::DictionaryCreator::export_dictionary(StringType dest_name, export_dat
 	}
 }
 
-void dict::DictionaryCreator::export_proper_nouns(StringType dest_name)
-{
-	FileOutputStream file_output(dest_name);
 
-	if (file_output.good())
+/*
+
+void dict::DictionaryCreator::export_proper_nouns(OutputStream &&file_output)
+{
+	if (!file_output.good())
 	{
-		output << "Exporting proper nouns to " << dest_name << std::endl;
-	}
-	else
-	{
-		output << "Failed to export proper nouns to " << dest_name << std::endl;
 		return;
 	}
 
@@ -224,6 +207,92 @@ void dict::DictionaryCreator::export_proper_nouns(StringType dest_name)
 	}
 }
 
+std::vector<const dict::Entry *> dict::DictionaryCreator::sort_some(dict::DictionaryCreator::ComparationType comparation_type, size_t top)
+{
+	size_t words_total = 0;
+	for (const auto &letter: dictionary)
+	{
+		words_total += letter.second.size();
+	}
+	top = std::min(words_total, top);
+
+	std::vector<const Entry*> vector;
+	vector.reserve(words_total);
+
+	for (const auto &letter: dictionary)
+	{
+		for (const auto &word: letter.second)
+		{
+			vector.push_back(&word);
+		}
+	}
+
+	std::partial_sort(vector.begin(), vector.begin() + top, vector.end(), sorters[static_cast<size_t>(comparation_type)]);
+
+	vector.resize(top);
+
+	return vector;
+}
+
+
+void dict::DictionaryCreator::export_top(dict::DictionaryCreator::ComparationType comparation_type, OutputStream &&file_output, size_t top)
+{
+	if (!file_output.good())
+	{
+		return;
+	}
+
+	auto pointers = sort_some(comparation_type, top);
+	
+	for (size_t i = 0; i != pointers.size(); ++i)
+	{
+		file_output << i + 1 << ". " << pointers[i]->get_word();
+		switch (comparation_type)
+		{
+		case ComparationType::MostFrequent:
+		case ComparationType::LeastFrequent:
+			{
+				if (auto counter = pointers[i]->get_counter(); counter > 1)
+				{
+					file_output << " (" << counter << ")";
+				}
+				break;
+			}
+		case ComparationType::Longest:
+			{
+				if (auto len = pointers[i]->get_word().size(); len > 5)
+				{
+					file_output << " (" << len << " letters)";
+				}
+				break;
+			}
+		case ComparationType::MostAmbiguous:
+		case ComparationType::LeastAmbiguous:
+			{
+				size_t total_definitions = 0;
+				size_t parts = 0;
+				for (const auto &pos: pointers[i]->get_definitions())
+				{
+					total_definitions += pos.second.size();
+					++parts;
+				}
+
+				if (total_definitions > 1)
+				{
+					file_output << "(" << total_definitions << " definitions as "
+						<< parts << " parts of speech)";
+				}
+
+				break;
+			}
+		}
+		file_output << std::endl;
+	}
+	file_output << std::endl;
+}
+
+*/
+
 void dict::DictionaryCreator::remove_proper_nouns()
 {
 	for (const auto &pn : proper_nouns)
@@ -232,7 +301,8 @@ void dict::DictionaryCreator::remove_proper_nouns()
 
 		for (const auto &word : pn.second)
 		{
-			dictionary[letter].erase(word);
+			Entry removeit(word);
+			dictionary[lowercase_letter(letter)].erase(removeit);
 		}
 	}
 
@@ -245,46 +315,24 @@ void dict::DictionaryCreator::remove_proper_nouns()
 	output << "Had to remove from the dictionary " << proper_nouns_number << " proper nouns.\n";
 }
 
-void dict::print_content(FileOutputStream &file_output, StringType entry, dict::export_data export_options)
+void dict::DictionaryCreator::print_content(OutputStream &file_output, const dict::Entry &entry, dict::export_data export_options)
 {
-//	output << "Printing content of " << entry << std::endl;
-	
 	switch (export_options)
 	{
-	case export_data::OneDefinition:
+		case export_data::AllDefinitionsPerPartOfSpeech:
 		{
-			auto definition = find_word_definition(entry);
-			file_output << "\t" << definition << "\n";
-			break;
-		}
-	case export_data::AllDefinitions:
-		{
-			auto definitions = find_word_definitions(entry);
-			for (const auto &d: definitions)
+			if (!entry.get_definitions().empty())
 			{
-				file_output << "\t" << d << "\n";
-			}
-			if (!definitions.empty())
-			{
-				file_output << std::endl;
-			}
-			break;
-		}
-	case export_data::AllDefinitionsPerPartOfSpeech:
-		{
-			auto set = find_word_per_part_of_speech_definitions(entry);
-			if (!set.empty())
-			{
-				for (const auto &pair : set)
+				for (const auto &pos: entry.get_definitions())
 				{
-					file_output << "\t" << pair.first << ":\n";
+					file_output << "\t" << pos.first << ":\n";
 					size_t i = 0;
-					for (const auto &definition : pair.second)
+					for (const auto &definition: pos.second)
 					{
-						++i;
 						file_output << "\t\t\t\t";
-						if (pair.second.size() > 1)
+						if (pos.second.size() > 1)
 						{
+							++i;
 							file_output << i << ") ";
 						}
 						file_output << definition << "\n";
@@ -294,16 +342,30 @@ void dict::print_content(FileOutputStream &file_output, StringType entry, dict::
 			}
 			else
 			{
-				file_output << "\t\t\t\t----Undefined----" << std::endl;
+				if (dictionary_defined)
+				{
+					file_output << "\t\t\t\t----Undefined----" << std::endl;
+				}
 			}
-			break;
+			file_output << "\tEncountered ";
+		       	switch (size_t encountered = entry.get_counter(); encountered)
+			{
+			case 1:
+				file_output << "once" << std::endl;
+				break;
+			case 2:
+				file_output << "twice" << std::endl;
+				break;
+			default:
+				file_output << encountered << " times." << std::endl;
+			}
 		}
 	}
 }
 
 void dict::remove_crlf(StringType &string)
 {
-	while (!string.empty() && (string.back() == 0xA || string.back() == 0xD))
+	while (!string.empty() && (string.back() == 0xA || string.back() == 0xD))		// TODO: check this condition validity
 	{
 		string.pop_back();
 	}

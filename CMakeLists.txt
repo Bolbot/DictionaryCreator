@@ -39,6 +39,9 @@ add_library(utils STATIC "utils.cpp" "utils.h")
 target_link_libraries(utils PUBLIC nlohmann_json::nlohmann_json)
 target_link_libraries(${PROJECT_NAME} PUBLIC utils)
 
+add_library(console_fs STATIC "console_file_system.cpp" "console_file_system.h")
+target_link_libraries(console_fs PUBLIC utils)
+
 add_library(dictionary_creator STATIC "dictionary_creator.cpp" "dictionary_creator.h")
 
 add_library(connections STATIC "connections.cpp" "connections.h")
@@ -67,7 +70,7 @@ target_link_libraries(dictionary_creator PUBLIC connections regex_parser)
 #target_link_libraries(dictionary_creator PUBLIC utils)
 #redundant since utils is connected to connections already
 
-target_link_libraries("${PROJECT_NAME}" PUBLIC dictionary_creator)
+target_link_libraries("${PROJECT_NAME}" PUBLIC dictionary_creator console_fs)
 
 
 # additional features for further use

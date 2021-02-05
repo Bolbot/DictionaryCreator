@@ -13,11 +13,11 @@
 
 namespace connections
 {
-	StringType get(const StringType &URI);
+	std::string get(const char *URI);
 
-	StringType lookup_online_dictionary(const StringType &word);
+	//StringType lookup_online_dictionary(const StringType &word);
 
-	StringType lookup_online_dictionary(const WordType &word);
+	std::string lookup_online_dictionary(const char *word);
 }
 
 

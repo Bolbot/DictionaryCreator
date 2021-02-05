@@ -1,5 +1,6 @@
 #include "connections.h"
 
+
 #ifdef __CURL_IS_AVALIABLE__
 
 struct CurlGlobalHandle
@@ -24,7 +25,7 @@ struct CurlGlobalHandle
 class CurlEasyHandle
 {
 public:
-	static int writer(char *data, size_t size, size_t nmemb, StringType *destination)
+	static int writer(char *data, size_t size, size_t nmemb, std::string *destination)
 	{
 		if (destination == nullptr)
 		{
@@ -59,6 +60,7 @@ public:
 
 			if (!valid_state || status != 200)
 			{
+				output << "HTTP " << status << " for " << address << std::endl;
 				response = "Web resourse is unavaliable";
 			}
 		}
@@ -68,18 +70,18 @@ public:
 		curl_easy_cleanup(handle);
 	}
 
-	StringType get_response() & noexcept
+	std::string get_response() & noexcept
 	{
 		return response;
 	}
-	StringType get_response() && noexcept
+	std::string get_response() && noexcept
 	{
 		return std::move(response);
 	}
 private:
 	CURL *handle;
 	bool valid_state;
-	StringType response;
+	std::string response;
 };
 
 #else
@@ -98,11 +100,11 @@ public:
 #endif
 
 
-StringType connections::get(const StringType &URI)
+std::string connections::get(const char *URI)
 {
-	return CurlEasyHandle(URI.data()).get_response();
+	return CurlEasyHandle(URI).get_response();
 }
-
+/*
 StringType connections::lookup_online_dictionary(const StringType &word)
 {
 	StringType dictionaryapi_request{ "https://api.dictionaryapi.dev/api/v2/entries/en/" };
@@ -110,11 +112,12 @@ StringType connections::lookup_online_dictionary(const StringType &word)
 
 	return connections::get(exact_request_address);
 }
+*/
 
-StringType connections::lookup_online_dictionary(const WordType &word)
+std::string connections::lookup_online_dictionary(const char *word)
 {
-	StringType dictionaryapi_request{ "https://api.dictionaryapi.dev/api/v2/entries/en/" };
-	StringType exact_request_address = dictionaryapi_request + word;
+	std::string dictionaryapi_request{ "https://api.dictionaryapi.dev/api/v2/entries/en/" };
+	std::string exact_request_address = dictionaryapi_request + word;
 
-	return connections::get(exact_request_address);
+	return connections::get(exact_request_address.data());
 }

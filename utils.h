@@ -7,9 +7,11 @@
 #define __THIS_IS_UNIX__
 #endif
 
-#include <filesystem>
+#include <locale>
 #include <string>
+#include <fstream>
 #include <codecvt>
+#include <cwctype>
 #include <iostream>
 #include <exception>
 
@@ -18,25 +20,50 @@
 #define __NLOHMANN_JSON_IS_AVALIABLE__
 #endif
 
-namespace fs = std::filesystem;
-using FSStringType = fs::path::string_type;
-using fsCharType = fs::path::value_type;
-using StringType = std::string;
-#ifdef __NLOHMANN_JSON_IS_AVALIABLE__
+#define __STRINGTYPE_IS_WSTRING__ 0
 
-using json = nlohmann::json;
+#if defined __STRINGTYPE_IS_WSTRING__ && __STRINGTYPE_IS_WSTRING__
+using StringType = std::wstring;
+static std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter_to_wstring;
+
+extern std::wostream &output;
+extern std::wistream &input;
+
+extern std::wostream &error_output;
+
+using FileInputStream = std::basic_ifstream<wchar_t>;
+using FileOutputStream = std::basic_ofstream<wchar_t>;
+using InputStream = std::basic_istream<wchar_t>;
+using OutputStream = std::basic_ostream<wchar_t>;
+#else
+using StringType = std::string;
+
+extern std::ostream &output;
+extern std::istream &input;
+extern std::ostream &error_output;
+
+using FileInputStream = std::basic_ifstream<char>;
+using FileOutputStream = std::basic_ofstream<char>;
+using InputStream = std::basic_istream<char>;
+using OutputStream = std::basic_ostream<char>;
+#endif
+
+static std::wstring_convert<std::codecvt_utf8<wchar_t>> converter_from_wstring;
+
+#ifdef __NLOHMANN_JSON_IS_AVALIABLE__
 
 template <typename InputType>
 auto parse_json(InputType input)
 {
-	using JsonType = decltype(json::parse(input));
+	using JsonType	//= decltype(nlohmann::json::parse(input));
+					= nlohmann::basic_json<std::map, std::vector, std::string>;
 
 	JsonType result;
 	bool result_valid = false;			// TODO: replace this with optional, maybe
 
 	try
 	{
-		result = json::parse(input);
+		result = nlohmann::json::parse(input);
 		result_valid = true;
 	}
 	catch (std::exception &e)
@@ -49,30 +76,10 @@ auto parse_json(InputType input)
 template <typename InputType>
 StringType parse_json(InputType input)
 {
-	return "NLOKNANN json feature is not avaliable";
+	return "NLOHMANN json feature is not avaliable";
 }
 #endif
-extern std::ostream &output;
-extern std::istream &input;
-using FileInputStream = std::ifstream;
-using FileOutputStream = std::ofstream;
 
-#ifdef __THIS_IS_WINDOWS__
-const FSStringType slash_or_backslash = LR"(\/)";
-#else
-const FSStringType slash_or_backslash = R"(\/)";
-#endif
-
-
-FSStringType to_fsstring(FSStringType fs) noexcept;
-#ifdef __THIS_IS_WINDOWS__
-FSStringType to_fsstring(std::string str) noexcept;
-#endif
-
-std::string stdstring(const std::string &s) noexcept;
-#ifdef __THIS_IS_WINDOWS__
-std::string stdstring(const std::wstring &ws) noexcept;
-#endif
 
 namespace lowercase_traits
 {
@@ -189,6 +196,10 @@ namespace lowercase_traits
 	}
 }
 
-using WordType = std::basic_string<char, lowercase_traits::lower_case_char_traits<char>>;
+template <typename Char = char>
+using WordType = std::basic_string<Char, lowercase_traits::lower_case_char_traits<Char>>;
+
+char lowercase_letter(char c);
+wchar_t lowercase_letter(wchar_t w);
 
 #endif
