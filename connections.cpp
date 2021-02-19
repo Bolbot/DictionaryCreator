@@ -9,11 +9,11 @@ struct CurlGlobalHandle
 	{
 		if (curl_global_init(CURL_GLOBAL_ALL) != 0)
 		{
-			output << "Problems with curl global initialization. All further use of curl is undefined\n";
+			std::cerr << "Problems with curl global initialization. All further use of curl is undefined\n";
 		}
 		else
 		{
-			output << "Using curl for https access.\n";
+			std::cout << "Using curl for https access.\n";
 		}
 	}
 	~CurlGlobalHandle()
@@ -60,7 +60,7 @@ public:
 
 			if (!valid_state || status != 200)
 			{
-				output << "HTTP " << status << " for " << address << std::endl;
+				std::cout << "HTTP " << status << " for " << address << std::endl;
 				response = "Web resourse is unavaliable";
 			}
 		}
@@ -91,9 +91,9 @@ class CurlEasyHandle
 public:
 	CurlEasyHandle(const char *str)
 	{}
-	StringType get_response() const noexcept
+	std::string get_response() const noexcept
 	{
-		return "Curl is unavaliable\n";
+		return "Curl is unavailable\n";
 	}
 };
 
@@ -103,21 +103,4 @@ public:
 std::string connections::get(const char *URI)
 {
 	return CurlEasyHandle(URI).get_response();
-}
-/*
-StringType connections::lookup_online_dictionary(const StringType &word)
-{
-	StringType dictionaryapi_request{ "https://api.dictionaryapi.dev/api/v2/entries/en/" };
-	StringType exact_request_address = dictionaryapi_request + word;
-
-	return connections::get(exact_request_address);
-}
-*/
-
-std::string connections::lookup_online_dictionary(const char *word)
-{
-	std::string dictionaryapi_request{ "https://api.dictionaryapi.dev/api/v2/entries/en/" };
-	std::string exact_request_address = dictionaryapi_request + word;
-
-	return connections::get(exact_request_address.data());
 }

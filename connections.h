@@ -1,7 +1,7 @@
 #ifndef __CONNECTIONS_H__
 #define __CONNECTIONS_H__
 
-#include "utils.h"
+#include <iostream>
 
 #define USING_CURL_FOR_CONNECTIONS 1
 
@@ -14,10 +14,6 @@
 namespace connections
 {
 	std::string get(const char *URI);
-
-	//StringType lookup_online_dictionary(const StringType &word);
-
-	std::string lookup_online_dictionary(const char *word);
 }
 
 

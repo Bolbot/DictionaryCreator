@@ -1,0 +1,2 @@
+#cmakedefine WINDOWS_H_IS_AVAILABLE 1
+#cmakedefine IO_H_IS_AVAILABLE 1
