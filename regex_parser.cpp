@@ -3,8 +3,9 @@
 #ifdef __PCRE_IS_AVALIABLE__
 
 pcre_parser::RegexParser::RegexParser(const char *pattern)
-	: options{ default_pcre_compile_options },
-		 regex{ pcre_compile(pattern, options, &error, &error_offset, table_pointer) }
+	:
+	options{ default_pcre_compile_options },
+	regex{ pcre_compile(pattern, options, &error, &error_offset, table_pointer) }
 {
 	if (regex == nullptr)
 	{
@@ -14,6 +15,7 @@ pcre_parser::RegexParser::RegexParser(const char *pattern)
 			<< "\n(" << error << ")";
 			throw std::runtime_error(error_message.str());
 	}
+	//std::cout << "RegexParser\t\tpattern \"" << pattern << "\"" << std::endl;
 }
 
 int pcre_parser::RegexParser::process_pcre_exec(const std::string &source, int start_offset, std::vector<int> &outputs) const
@@ -50,7 +52,7 @@ std::string pcre_parser::RegexParser::single_match(const std::string &source, in
 
 	if (res == PCRE_ERROR_NOMATCH)
 	{
-		return "No match found";
+		return {};
 	}
 	else
 	{

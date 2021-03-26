@@ -21,11 +21,10 @@ bool dictionary_creator::Entry::is_defined() const noexcept
 	return defined;
 }
 
-const dictionary_creator::Entry &dictionary_creator::Entry::define(const dictionary_creator::definer_t &definer) const
+const dictionary_creator::Entry &dictionary_creator::Entry::define(const dictionary_creator::definer_t &definer)
 {
 	if (!defined)
 	{
-		std::cerr << word << " define. Definer is @" << &definer << " size is " << sizeof(definer) << std::endl;
 		definitions = definer(word);
 
 		if (definitions.size() > 0)
@@ -42,7 +41,7 @@ size_t dictionary_creator::Entry::get_counter() const noexcept
 	return encounters;
 }
 
-void dictionary_creator::Entry::increment_counter(size_t i) const noexcept
+void dictionary_creator::Entry::increment_counter(size_t i) noexcept
 {
 	encounters += i;
 }
@@ -51,6 +50,8 @@ dictionary_creator::Entry::operator const char *() const noexcept
 {
 	return word.c_str();
 }
+
+dictionary_creator::Entry::~Entry() = default;
 
 bool dictionary_creator::operator<(const dictionary_creator::Entry &a, const dictionary_creator::Entry &b)
 {

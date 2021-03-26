@@ -1,11 +1,15 @@
 cmake_minimum_required(VERSION "3.12.0")
 
 project("DictionaryCreator")
-message("Project name is ${PROJECT_NAME}")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_POSITION_INDEPENDENT_CODE On)
+
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+	add_definitions(-D_UNICODE)
+endif (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+
 
 message("Current OS: ${CMAKE_SYSTEM_NAME} (version ${CMAKE_SYSTEM_VERSION})")
 message("Current processor: ${CMAKE_SYSTEM_PROCESSOR}")
@@ -13,9 +17,6 @@ if (${CMAKE_TOOLCHAIN_FILE})
 	message("Using toolchain: ${CMAKE_TOOLCHAIN_FILE}")
 endif (${CMAKE_TOOLCHAIN_FILE})
 
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-	add_definitions(-D_UNICODE)
-endif (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
 
 include (CheckIncludeFiles)
 
@@ -29,8 +30,9 @@ if (IO_H_IS_AVAILABLE)
 	message("IO_H_IS_AVAILABLE")
 endif (IO_H_IS_AVAILABLE)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
-message("Check ${CMAKE_CURRENT_BINARY_DIR}/config.h made from ${CMAKE_CURRENT_SOURCE_DIR}/config.h.in")
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in ${CMAKE_CURRENT_SOURCE_DIR}/config.h)
+message("Check ${CMAKE_CURRENT_SOURCE_DIR}/config.h made from ${CMAKE_CURRENT_SOURCE_DIR}/config.h.in")
+#works like this, only takes rebuilds with _H variables deleted from CMakeCache
 
 
 include(FetchContent)
@@ -40,6 +42,7 @@ if(NOT json_POPULATED)
 	FetchContent_Populate(json)
 	add_subdirectory(${json_SOURCE_DIR} ${json_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
+
 
 find_package(CURL)
 if (CURL_FOUND)
@@ -52,6 +55,9 @@ else (CURL_FOUND)
 endif (CURL_FOUND)
 
 
+find_package(Boost REQUIRED serialization)
+
+
 add_executable(${PROJECT_NAME} "main.cpp" "simple_tests.h")
 
 
@@ -59,12 +65,13 @@ add_library(connections STATIC "connections.h" "connections.cpp")
 target_link_libraries(connections PUBLIC CURL::libcurl)
 
 add_library(dictionary_entry STATIC "dictionary_entry.h" "dictionary_entry.cpp" "dictionary_types.h")
+target_link_libraries(dictionary_entry PUBLIC Boost::serialization)
 
 add_library(dictionary_definer STATIC "dictionary_definer.h" "dictionary_definer.cpp" "dictionary_types.h" "dictionary_language.h")
-target_link_libraries(dictionary_definer PUBLIC nlohmann_json::nlohmann_json connections)
+target_link_libraries(dictionary_definer PUBLIC nlohmann_json::nlohmann_json connections Boost::serialization)
 
-add_library(dictionary STATIC "dictionary.h" "dictionary.cpp" "dictionary_language.h" "dictionary_definer.h")
-target_link_libraries(dictionary PUBLIC dictionary_entry)
+add_library(dictionary STATIC "dictionary.h" "dictionary.cpp" "dictionary_entry.h" "dictionary_types.h" "dictionary_language.h" "dictionary_definer.h")
+target_link_libraries(dictionary PUBLIC dictionary_entry Boost::serialization)
 
 add_library(regex_parser STATIC "regex_parser.h" "regex_parser.cpp")
 check_include_files(pcre.h PCRE_H_IS_AVAILABLE)
@@ -84,7 +91,10 @@ target_link_libraries(dictionary_manager PUBLIC dictionary dictionary_creator di
 add_library(simple_tests STATIC "simple_tests.h" "simple_tests.cpp")
 target_link_libraries(simple_tests PUBLIC connections dictionary_entry dictionary regex_parser dictionary_creator dictionary_manager)
 
-target_link_libraries(${PROJECT_NAME} PUBLIC simple_tests)
+add_library(huge_test STATIC "huge_test.h" "huge_test.cpp")
+target_link_libraries(huge_test PUBLIC dictionary_manager)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC simple_tests huge_test)
 
 # additional features for further use
 

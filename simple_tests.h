@@ -33,6 +33,12 @@ namespace simple_tests
 	void test_dictionary_exporter();
 
 	void test_dictionary_manager();
+
+	void test_custom_entry_type();
+
+	void test_letter_related_features();
+
+	void test_one_line_parser();
 }
 
 #endif

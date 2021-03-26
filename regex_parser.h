@@ -16,13 +16,15 @@
 #include <sstream>
 #include <exception>
 
+#include <iostream>		// FOR DEBUG
+
 #ifndef __PCRE_IS_AVALIABLE__
 static_assert(false, "PCRE_IN_NOT_AVALIABLE");
 #endif
 
 namespace pcre_parser
 {
-	using matches = std::set<std::string>;
+	using matches = std::multiset<std::string>;
 
 	constexpr size_t default_output_vector_size = 27;
 	constexpr int default_pcre_compile_options = 0;

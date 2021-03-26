@@ -1,16 +1,21 @@
 #include "dictionary.h"
 
-size_t dictionary_creator::utf8_length(const dictionary_creator::utf8_string &string) noexcept
+bool dictionary_creator::DefaultEntrySorter::operator()
+	(const std::shared_ptr<dictionary_creator::Entry> &a, const std::shared_ptr<dictionary_creator::Entry> &b) const noexcept
 {
-	size_t separate_characters = 0;
-	for (auto i: string)
-	{
-		if ((i & 0xC0) != 0x80)
-		{
-			++separate_characters;
-		}
-	}
-	return separate_characters;
+	return a->get_word() < b->get_word();
+}
+
+bool dictionary_creator::DefaultEntrySorter::operator()
+	(const std::shared_ptr<dictionary_creator::Entry> &a, const dictionary_creator::utf8_string &b) const noexcept
+{
+	return a->get_word() < b;
+}
+
+bool dictionary_creator::DefaultEntrySorter::operator()
+	(const dictionary_creator::utf8_string &a, const std::shared_ptr<dictionary_creator::Entry> &b) const noexcept
+{
+	return a < b->get_word();
 }
 
 dictionary_creator::Dictionary::Dictionary(dictionary_creator::Language language) : language{ language }
@@ -29,7 +34,7 @@ dictionary_creator::Dictionary &dictionary_creator::Dictionary::merge(const dict
 		{
 			if (auto existing = dictionary[letter].find(entry); existing != dictionary[letter].end())
 			{
-				existing->increment_counter(entry.get_counter());
+				(*existing)->increment_counter(entry->get_counter());
 			}
 			else
 			{
@@ -64,7 +69,7 @@ dictionary_creator::Dictionary &dictionary_creator::Dictionary::merge(dictionary
 		{
 			if (auto existing = dictionary[letter].find(entry); existing != dictionary[letter].end())
 			{
-				existing->increment_counter(entry.get_counter());
+				(*existing)->increment_counter(entry->get_counter());
 			}
 		}
 		dictionary[letter].merge(std::move(other.dictionary[letter]));
@@ -150,7 +155,7 @@ dictionary_creator::Dictionary dictionary_creator::Dictionary::intersection_with
 			{
 				if (other.dictionary.at(letter).find(entry) != other.dictionary.at(letter).end())
 				{
-						result.dictionary[letter].insert(entry.is_defined() ? entry : *other.dictionary.at(letter).find(entry));
+					result.dictionary[letter].insert(entry->is_defined() ? entry : *other.dictionary.at(letter).find(entry));
 				}
 			}
 		}
@@ -171,42 +176,24 @@ dictionary_creator::Dictionary dictionary_creator::Dictionary::intersection_with
 	return result;
 }
 
-dictionary_creator::letter_type dictionary_creator::Dictionary::get_first_letter(utf8_string word) const
+dictionary_creator::letter_type dictionary_creator::Dictionary::get_first_letter(dictionary_creator::utf8_string word) const
 {
-	letter_type first_letter;
-
-	switch (language)
-	{
-	case Language::English:
-		first_letter = std::toupper(static_cast<unsigned char>(word.front()));
-		break;
-	case Language::French:
-		// TODO			break;
-	case Language::Russian:
-		// TODO			break;
-	case Language::German:
-		// TODO			break;
-	default:
-		throw std::runtime_error("Language is not supported");
-	}
-
-	return first_letter;
+	return uppercase_letter(first_letter(word, language), language);
 }
 
 bool dictionary_creator::Dictionary::add_word(utf8_string word)
 {
 	letter_type first_letter = get_first_letter(word);
 
-	dictionary_creator::Entry entry(std::move(word));
-
-	if (auto word = dictionary[first_letter].find(entry); word == dictionary[first_letter].end())
+	if (auto found = dictionary[first_letter].find(word); found == dictionary[first_letter].end())
 	{
-		auto [iterator, emplacement_happened] = dictionary[first_letter].emplace(std::move(entry));
+		auto [iterator, emplacement_happened] =
+			dictionary[first_letter].insert(std::make_shared<dictionary_creator::Entry>(std::move(word)));
 		return emplacement_happened;
 	}
 	else
 	{
-		word->increment_counter();
+		(*found)->increment_counter();
 		return false;
 	}
 }
@@ -215,26 +202,33 @@ bool dictionary_creator::Dictionary::remove_word(utf8_string word)
 {
 	letter_type first_letter = get_first_letter(word);
 
-	return dictionary[first_letter].erase(dictionary_creator::Entry(std::move(word)));
+	return dictionary[first_letter].erase(std::make_shared<dictionary_creator::Entry>(std::move(word)));
 }
 
 void dictionary_creator::Dictionary::add_proper_noun(utf8_string proper_noun)
 {
 	letter_type first_letter = get_first_letter(proper_noun);
 
-	proper_nouns[first_letter].emplace(std::move(proper_noun));
+	proper_nouns[first_letter].insert(std::make_shared<dictionary_creator::Entry>(std::move(proper_noun)));
 }
 
-const dictionary_creator::Entry *const dictionary_creator::Dictionary::lookup(dictionary_creator::utf8_string word) const
+std::shared_ptr<dictionary_creator::Entry> dictionary_creator::Dictionary::lookup(dictionary_creator::utf8_string word) const
 {
-	Entry entry(word);
-	letter_type first_letter = get_first_letter(word);
+	letter_type first_letter;
+       	try
+	{
+		first_letter = get_first_letter(word);
+	}
+	catch (std::exception& possible_broken_UTF8_letter)
+	{
+		return nullptr;
+	}
 
 	try
 	{
-		if (auto iterator = dictionary.at(first_letter).find(entry); iterator != dictionary.at(first_letter).end())
+		if (auto iterator = dictionary.at(first_letter).find(std::move(word)); iterator != dictionary.at(first_letter).end())
 		{
-			return &*iterator;
+			return *iterator;
 		}
 	}
 	catch (std::out_of_range &) {}
@@ -254,34 +248,36 @@ size_t dictionary_creator::Dictionary::total_words() const
 	return result;
 }
 
-std::vector<const dictionary_creator::Entry *> dictionary_creator::Dictionary::get_top(dictionary_creator::ComparisonType criterion, size_t quantity) const
+dictionary_creator::subset_t dictionary_creator::Dictionary::get_top(dictionary_creator::ComparisonType criterion, size_t quantity) const
 {
 	size_t total_entries = total_words();
 
 	quantity = std::min(quantity, total_entries);
 
-	std::vector<const dictionary_creator::Entry *> entries;
+	dictionary_creator::subset_t entries;
 	entries.reserve(total_entries);
 
 	for (const auto &[letter, words]: dictionary)
 	{
-		for (const auto &w: words)
+		for (const auto w: words)
 		{
-			entries.push_back(&w);
+			entries.push_back(w);
 		}
 	}
 
 	std::partial_sort(entries.begin(), entries.begin() + quantity, entries.end(),
 			dictionary_creator::criteria_dependent_sorters[static_cast<size_t>(criterion)]);
+//	std::stable_sort(entries.begin(), entries.end(), dictionary_creator::criteria_dependent_sorters[static_cast<size_t>(criterion)]);
 
 	entries.resize(quantity);
 
 	return entries;
 }
 
-std::vector<const dictionary_creator::Entry *> dictionary_creator::Dictionary::get_letter_entries(dictionary_creator::letter_type letter) const
+dictionary_creator::subset_t dictionary_creator::Dictionary::get_letter_entries(dictionary_creator::letter_type letter) const
 {
-	std::vector<const dictionary_creator::Entry *> entries;
+	dictionary_creator::subset_t entries;
+	letter = uppercase_letter(letter, language);
 
 	try
 	{
@@ -290,7 +286,7 @@ std::vector<const dictionary_creator::Entry *> dictionary_creator::Dictionary::g
 
 		for (const auto &word: dictionary.at(letter))
 		{
-			entries.push_back(&word);
+			entries.push_back(word);
 		}
 	}
 	catch (std::out_of_range &) {}
@@ -298,17 +294,17 @@ std::vector<const dictionary_creator::Entry *> dictionary_creator::Dictionary::g
 	return entries;
 }
 
-std::vector<const dictionary_creator::Entry *> dictionary_creator::Dictionary::get_undefined() const
+dictionary_creator::subset_t dictionary_creator::Dictionary::get_undefined() const
 {
-	std::vector<const dictionary_creator::Entry *> result;
+	dictionary_creator::subset_t result;
 
 	for (const auto &[letter, entries]: dictionary)
 	{
 		for (const auto &entry: entries)
 		{
-			if (entry.is_defined() == false)
+			if (entry->is_defined() == false)
 			{
-				result.push_back(&entry);
+				result.push_back(entry);
 			}
 		}
 	}
@@ -316,7 +312,7 @@ std::vector<const dictionary_creator::Entry *> dictionary_creator::Dictionary::g
 	return result;
 }
 
-const dictionary_creator::Entry *dictionary_creator::Dictionary::get_random_word() const
+std::shared_ptr<dictionary_creator::Entry> dictionary_creator::Dictionary::get_random_word() const
 {
 	if (dictionary.empty())
 	{
@@ -334,21 +330,47 @@ const dictionary_creator::Entry *dictionary_creator::Dictionary::get_random_word
 
 	auto word = letter->second.begin();
 	std::advance(word, random_number(letter->second.size()));
-	return &*word;
+	return *word;
 }
 
-std::vector<const dictionary_creator::Entry *> dictionary_creator::Dictionary::get_random_words(size_t number) const
+dictionary_creator::subset_t dictionary_creator::Dictionary::get_random_words(size_t number) const
 {
-	number = std::min(number, total_words());
-
-	std::set<const dictionary_creator::Entry *> set;
-
-	while (set.size() != number)
+	if (number > 100)
 	{
-		set.insert(get_random_word());
-	}
+		dictionary_creator::subset_t all_entries;
+		all_entries.reserve(total_words());
 
-	return std::vector<const dictionary_creator::Entry *>(set.begin(), set.end());
+		for (const auto &[letter, entries]: dictionary)
+		{
+			for (const auto &entry: entries)
+			{
+				all_entries.push_back(entry);
+			}
+		}
+
+		while (all_entries.size() > number)
+		{
+			auto it = all_entries.begin() + random_number(all_entries.size());
+			std::swap(*it, *all_entries.rbegin());
+			all_entries.pop_back();
+		}
+
+		all_entries.shrink_to_fit();
+		return all_entries;
+	}
+	else
+	{
+		number = std::min(number, total_words());
+
+		std::set<std::shared_ptr<dictionary_creator::Entry>> set;
+
+		while (set.size() != number)
+		{
+			set.insert(get_random_word());
+		}
+	
+		return dictionary_creator::subset_t(set.begin(), set.end());
+	}
 }
 
 size_t dictionary_creator::random_number(size_t max)
@@ -439,7 +461,7 @@ dictionary_creator::DictionaryExporter::DictionaryExporter(std::ostream *output_
 	: dictionary_creator::DictionaryExporter{ output_stream ? *output_stream : std::cerr, undefined_warning }
 {}
 
-std::ostream &dictionary_creator::DictionaryExporter::export_dictionary(dictionary_creator::Dictionary &object,
+std::ostream &dictionary_creator::DictionaryExporter::export_dictionary(const dictionary_creator::Dictionary &object,
 	dictionary_creator::ExportOptions options)
 {
 	if (!output_stream->good())
@@ -460,7 +482,7 @@ std::ostream &dictionary_creator::DictionaryExporter::export_dictionary(dictiona
 
 			for (const auto &word : words)
 			{
-				print_entry(word, options);
+				print_entry(*word, options);
 			}
 
 			print_empty_line(options);
@@ -472,7 +494,7 @@ std::ostream &dictionary_creator::DictionaryExporter::export_dictionary(dictiona
 		{
 			for (const auto &name: entries)
 			{
-				print_entry(name, options);
+				print_entry(*name, options);
 			}
 		}
 	}
@@ -480,8 +502,7 @@ std::ostream &dictionary_creator::DictionaryExporter::export_dictionary(dictiona
 	return *output_stream;
 }
 
-std::ostream &dictionary_creator::DictionaryExporter::export_entries(const std::vector<const dictionary_creator::Entry *> &entries,
-		dictionary_creator::ExportOptions options)
+std::ostream &dictionary_creator::DictionaryExporter::export_entries(const dictionary_creator::subset_t &entries, dictionary_creator::ExportOptions options)
 {
 	if (!output_stream->good())
 	{
@@ -500,9 +521,9 @@ void dictionary_creator::DictionaryExporter::print_letter(dictionary_creator::le
 {
 	if (options & ExportOptions::BasicDecorations)
 	{
-		auto len = letter.size() * 5;
+		auto len = letter.size() * 10;
 		*output_stream << std::setw(len) << std::setfill('-') << '\n'
-			<< '|' << std::setw(len / 2) << std::setfill(' ') << letter << std::setw((len / 2) - 2) << '\n'
+			<< '|' << std::setw(len / 2) << std::setfill(' ') << letter << std::setw((len / 2) - 2) << "|\n"
 			<< std::setw(len) << std::setfill('-') << '\n';
 	}
 	else if (options & ExportOptions::AdvancedDecorations)
@@ -522,7 +543,17 @@ void dictionary_creator::DictionaryExporter::print_entry(const dictionary_creato
 		if (options & ExportOptions::UndefinedWords)
 		{
 			*output_stream << entry;
-			if (options & ExportOptions::UndefinedWarnings)
+
+			if (options & dictionary_creator::ExportOptions::Length)
+			{
+				*output_stream << " (" << dictionary_creator::utf8_length(entry.get_word()) << ")";
+			}
+			if (options & dictionary_creator::ExportOptions::Frequency)
+			{
+				*output_stream << " [" << entry.get_counter() << "]";
+			}
+
+			if (options & dictionary_creator::ExportOptions::UndefinedWarnings)
 			{
 				*output_stream << "\t\t" << undefined_warning << std::endl;
 			}
@@ -535,6 +566,26 @@ void dictionary_creator::DictionaryExporter::print_entry(const dictionary_creato
 	else
 	{
 		*output_stream << entry;
+		if (options & dictionary_creator::ExportOptions::Length)
+		{
+			*output_stream << " (" << dictionary_creator::utf8_length(entry.get_word()) << ")";
+		}
+		if (options & dictionary_creator::ExportOptions::Frequency)
+		{
+			*output_stream << " [" << entry.get_counter() << "]";
+		}
+		if (options & dictionary_creator::ExportOptions::Ambiguousness)
+		{
+			size_t total_definitions = 0;
+			for (const auto &[part_of_speech, definitions]: entry.get_definitions())
+			{
+				for (const auto &def: definitions)
+				{
+					total_definitions += def.size();
+				}
+			}
+			*output_stream << " { " << total_definitions << " }";
+		}
 
 		if ((options & ExportOptions::EveryPartOfSpeech) == 0ull)
 		{

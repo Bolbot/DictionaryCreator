@@ -12,7 +12,6 @@ void simple_tests::tests(const char *program_name)
 {
 	std::cout << "Tests for " << program_name << std::endl;
 
-	/*
 	simple_tests::test_connections();
 
 	simple_tests::test_entry();
@@ -24,9 +23,14 @@ void simple_tests::tests(const char *program_name)
 	simple_tests::test_dictionary_exporter();
 
 	simple_tests::test_dictionary_manager();
-	*/
+
+	simple_tests::test_custom_entry_type();
+
+	simple_tests::test_letter_related_features();
+
+	simple_tests::test_one_line_parser();
 }
-/*
+
 void simple_tests::test_connections()
 {
 	std::cout << "Testing connections\n";
@@ -82,12 +86,12 @@ void simple_tests::test_entry()
 		return definitions;
 	};
 
-	dictionary_creator::Entry entry(dictionary_creator::utf8_string{ "Elephant" }, definer);
+	dictionary_creator::Entry entry(dictionary_creator::utf8_string{ "Elephant" });
 
 	std::cout << "\t.get_word() " << entry.get_word() << "\n\t.is_defined() " << std::boolalpha << entry.is_defined()
 		<< "\n\t.get_counter()\t" << entry.get_counter() << "\n\tstd::cout << entry\t" << entry << std::endl;
 
-	entry.define();
+	entry.define(definer);
 
 	std::cout << "After it's defined via .define()\n\t.is_defined() " << std::boolalpha << entry.is_defined()
 		<< "\n\t.get_counter()\t" << entry.get_counter() << "\n\tstd::cout << entry\t" << entry << std::endl;
@@ -103,7 +107,7 @@ void simple_tests::test_entry()
 		}
 	}
 
-	dictionary_creator::Entry another(dictionary_creator::utf8_string{ u8"Français" }, definer);
+	dictionary_creator::Entry another(dictionary_creator::utf8_string{ u8"Français" });
 	
 	std::cout << another << " < " << entry << " : " << (another < entry) << "\t\t"
 		<< entry << " < " << another << " : " << (entry < another) << std::endl;
@@ -401,10 +405,15 @@ void simple_tests::test_dictionary_exporter()
 	std::cout << "Now using it to export given dictionary to std::cout:\n";
 	exporter.export_dictionary(eng);
 
+	auto definer = [] (dictionary_creator::utf8_string)
+	{
+		return dictionary_creator::definitions_t{ { "Noun", { "Some object", "Something" } }, { "Adjective", { "Good" } } };
+	};
+
 	auto entries = eng.get_top(dictionary_creator::ComparisonType::Shortest, 50);
 	for (const auto &i : entries)
 	{
-	//	i->define();
+		i->define(definer);
 	}
 	std::cout << "Exporting again, now after they're defined\n";
 	exporter.export_dictionary(eng);
@@ -437,7 +446,7 @@ void simple_tests::test_dictionary_manager()
 	}
 
 	std::cout << "\n\t\t\t\tII. .lookup_or_add_word and .get of different flavours\n";
-	if (auto *mentry = dm.lookup_or_add_word("masterpiece"); mentry)
+	if (auto mentry = dm.lookup_or_add_word("masterpiece"); mentry)
 	{
 		std::cout << "\t.lookup_or_add_word(\"masterpiece\") returns " << typeid(mentry).name()
 			<< " that has word " << *mentry << std::endl;
@@ -489,35 +498,36 @@ void simple_tests::test_dictionary_manager()
 	}
 
 	std::cout << "Subset starting from letter F:\t";
-	for (auto *i: dm.get_subset("F"))
+	for (auto i: dm.get_subset("F"))
 	{
 		std::cout << '\t' << i->get_word() << std::endl;
 	}
 
 	std::cout << "Subset starting from letter i:\t";
-	for (auto *i: dm.get_subset("i"))
+	for (auto i: dm.get_subset("i"))
 	{
 		std::cout << '\t' << i->get_word() << std::endl;
 	}
+	std::cout << std::endl;
 
 	std::cout << "\t.get_undefined(5) yields:\n\t";
-	for (auto *i: dm.get_undefined(5))
+	for (auto i: dm.get_undefined(5))
 	{
 		std::cout << "\t" << i->get_word();
 	}
 	std::cout << "\n\t.get_undefined() yields:\n\t";
-	for (auto *i: dm.get_undefined())
+	for (auto i: dm.get_undefined())
 	{
 		std::cout << "\t" << i->get_word();
 	}
 	std::cout << std::endl;
 
-	const auto *rw_one = dm.get_random_word();
-	const auto *rw_two = dm.get_random_word();
+	const auto rw_one = dm.get_random_word();
+	const auto rw_two = dm.get_random_word();
 	if (rw_one && rw_two)
 	{
-		std::cout << "\t.get_random_word() twice in a row yields:\n\t\t"
-			<< rw_one->get_word() << "\tand\t" << rw_two->get_word() << std::endl;
+		std::cout << "\t.get_random_word() twice in a row yields:\n\t\t\""
+			<< rw_one->get_word() << "\"\tand\t\"" << rw_two->get_word() << "\"" << std::endl;
 	}
 	else
 	{
@@ -527,7 +537,7 @@ void simple_tests::test_dictionary_manager()
 
 	std::cout << "\t.get_random_words(7) yields:\n\t";
 	auto random_7 = dm.get_random_words(7);
-	for (const auto *i: random_7)
+	for (const auto i: random_7)
 	{
 		std::cout << "\t" << i->get_word();
 	}
@@ -535,7 +545,7 @@ void simple_tests::test_dictionary_manager()
 
 	std::cout << "\n\t\t\t\tIII. .define\n";
 
-	if (const auto *ff = dm.define("firefighter"); ff && ff->is_defined())
+	if (auto ff = dm.define("firefighter"); ff && ff->is_defined())
 	{
 		std::cout << "\t.define(\"firefighter\") yields " << ff->get_word() << " is defined now\n";
 	}
@@ -545,7 +555,12 @@ void simple_tests::test_dictionary_manager()
 		return;
 	}
 
-	if (const auto &k = dm.lookup_or_add_word("kite")->define(); k.is_defined())
+	auto definer = [] (dictionary_creator::utf8_string)
+	{
+		return dictionary_creator::definitions_t{ { "Noun", { "Some object" } }, { "Adjective", { "Good", "Proper" } } };
+	};
+
+	if (auto k = dm.lookup_or_add_word("kite")->define(definer); k.is_defined())
 	{
 		std::cout << "\t.define() makes " << k.get_word() << " defined\n";
 	}
@@ -556,9 +571,10 @@ void simple_tests::test_dictionary_manager()
 	}
 
 	const auto &longest_word = *dm.get_subset(dictionary_creator::ComparisonType::Longest, 1).front();
-	if (const auto *l = dm.define(longest_word); l && l->is_defined())
+	if (auto l = dm.define(longest_word); l && l->is_defined())
 	{
 		std::cout << "\t.define() for longest word " << longest_word.get_word() << " worked\n";
+		std::cout << "(also this is " << l->get_word() << ")\n";
 	}
 	else
 	{
@@ -568,7 +584,7 @@ void simple_tests::test_dictionary_manager()
 
 	std::cout << "Less complex and not so edgy use of .define() on not temporary anymore subset:\n";
 	auto shortest_4 = dm.define(dm.get_subset(dictionary_creator::ComparisonType::Shortest, 4));
-	for (const auto *i: shortest_4)
+	for (auto i: shortest_4)
 	{
 		std::cout << "\t" << i->get_word();
 	}
@@ -603,4 +619,309 @@ void simple_tests::test_dictionary_manager()
 
 	std::cout << "If you got this far, then it mustn't be so bad after all. Now go see those output files, really.\n";
 }
+
+class DifficultyEntry : public dictionary_creator::Entry
+{
+public:
+	enum class difficulty{ Easy, Normal, Hard, VeryHard };
+	DifficultyEntry(dictionary_creator::utf8_string str, difficulty dif) : Entry{ std::move(str) }, word_difficulty{ dif }
+	{}
+	difficulty get_difficulty() const noexcept
+	{
+		return word_difficulty;
+	}
+private:
+	difficulty word_difficulty;
+};
+
+class ImproperEntry
+{
+public:
+	ImproperEntry(dictionary_creator::utf8_string str) : data{ str }
+	{}
+private:
+	const dictionary_creator::utf8_string data;
+};
+
+void simple_tests::test_custom_entry_type()
+{
+	std::cout << "Testing custom Entry type\n";
+
+	dictionary_creator::DictionaryManager eng(dictionary_creator::Language::English);
+
+	eng.add_input_file("English_A.text");
+	eng.parse_all_pending();
+
+	eng.lookup_or_add_word("antidisestablishmentarianism");
+
+	eng.lookup_or_add_word<DifficultyEntry>("analogy", DifficultyEntry::difficulty::Normal);
+	//eng.lookup_or_add_word<ImproperEntry>("improper", DifficultyEntry::difficulty::Normal);
+	
+	eng.lookup_or_add_word<DifficultyEntry>("ambiguous", DifficultyEntry::difficulty::Normal);
+
+	auto check_difficulty = [] (const std::shared_ptr<dictionary_creator::Entry> &sp)
+	{
+		auto de_ptr = dynamic_cast<DifficultyEntry *>(sp.get());
+		if (de_ptr)
+		{
+			std::cout << "Difficulty of \"" << sp->get_word() << "\" is "
+				<< static_cast<int>(de_ptr->get_difficulty()) << std::endl;
+		}
+		else
+		{
+			std::cout << "Word \"" << sp->get_word() << "\" isn't stored as a DifficultyEntry\n";
+		}
+	};
+
+	std::cout << "\nChecking difficulty of some entries:\n";
+	auto longest = eng.get_subset(dictionary_creator::ComparisonType::Longest, 4);
+	for (auto i: longest)
+	{
+		check_difficulty(i);
+	}
+
+	eng.lookup_or_add_word<DifficultyEntry>("analogical", DifficultyEntry::difficulty::Normal);
+	eng.lookup_or_add_word<DifficultyEntry>("antidisestablishmentarianism", DifficultyEntry::difficulty::VeryHard);
+
+	std::cout << "\nChecking difficulty again after some updates:\n";
+	longest = eng.get_subset(dictionary_creator::ComparisonType::Longest, 4);
+	for (auto i: longest)
+	{
+		check_difficulty(i);
+	}
+
+	eng.lookup_or_add_word<DifficultyEntry>("patriotical", DifficultyEntry::difficulty::Normal);
+	eng.lookup_or_add_word<DifficultyEntry>("cow", DifficultyEntry::difficulty::Easy);
+	eng.lookup_or_add_word<DifficultyEntry>("penultimate", DifficultyEntry::difficulty::Normal);
+	eng.lookup_or_add_word<DifficultyEntry>("antepenultimate", DifficultyEntry::difficulty::Hard);
+
+	std::cout << "\nAcquiring subest of 7 most difficult words (lambda):\n";
+	auto comp_most_dif = [](const DifficultyEntry &a, const DifficultyEntry &b)
+	{
+		return static_cast<int>(a.get_difficulty()) > static_cast<int>(b.get_difficulty());
+	};
+	
+	auto most_difficult = eng.get_subset(comp_most_dif, 7);
+	for (auto i: most_difficult)
+	{
+		check_difficulty(i);
+	}
+
+	std::cout << "\nAcquiring subest of 10 least difficult words (function pointer):\n";
+	auto comp_least_dif = +[](const DifficultyEntry &a, const DifficultyEntry &b)
+	{
+		return static_cast<int>(a.get_difficulty()) < static_cast<int>(b.get_difficulty());
+	};
+	
+	auto least_difficult = eng.get_subset(comp_least_dif, 10);
+	for (auto i: least_difficult)
+	{
+		check_difficulty(i);
+	}
+}
+
+/*
+dictionary_creator::letter_type get_next_letter(dictionary_creator::letter_type letter)
+{
+	auto first_octet = static_cast<size_t>(letter.front());
+	size_t bytes = 0;
+	for (size_t i = 1 << 7; (first_octet & i) != 0ull; i >>= 1)
+	{
+		++bytes;
+	}
+	if (bytes == 0)
+	{
+		bytes = 1;
+	}
+
+//	std::cout << "get_next_letter(" << letter << ")\t\tsize of it is " << letter.size() << "\tbytes: " << bytes << std::endl;
+
+	size_t target = 0;
+	size_t shift = 0;
+	for (size_t i = bytes - 1; i != 0; --i)
+	{
+		auto octet = static_cast<size_t>(letter[i]);
+
+		if ((octet & 0xC0) != 0x80)
+		{
+			throw std::runtime_error("broken UTF-8 letter");
+		}
+		octet &= 0x3F;
+		octet <<= shift;
+		target |= octet;
+
+		shift += 6;
+	}
+
+	size_t bits_in_first_octet = 8 - (bytes + 1);
+	size_t first_octet_mask = 0;
+	for (size_t i = 0; i != bits_in_first_octet; ++i)
+	{
+		first_octet_mask |= (1 << i);
+	}
+	if (bytes == 1)
+	{
+		first_octet_mask = 0x7F;
+	}
+	first_octet &= first_octet_mask;
+
+	target |= (first_octet << shift);
+
+//	std::cout << "\n\t\t\tDEC: " << std::dec << target << "\tHEX: " << std::hex << target << "\tBIN: " << std::bitset<16>(target) << std::endl;
+
+	++target;
+
+	letter.clear();
+
+	if (target <= 0x7F)
+	{
+		letter.push_back(target);
+	}
+	else if (target <= 0x7FF)
+	{
+		size_t first = (0xC0 | (target >> 6));
+		size_t second = (0x80 | (target & 0x3F));
+		letter.push_back(first);
+		letter.push_back(second);
+	}
+	else
+	{
+		throw std::runtime_error("3+ byte UTF-8 letters are not yet supported");
+	}
+
+	return letter;
+}
 */
+
+void simple_tests::test_letter_related_features()
+{
+	std::cout << "Testing letter related features: first_letter and uppercase_letter\n";
+
+	auto first_byte = [] (char c) -> bool
+	{
+		return ((c & 0xC0) != 0x80);
+	};
+
+	std::cout << "Example: english\n";
+	dictionary_creator::utf8_string eng_lo{ u8"abcdefghijklmnopqrstuvwxyz" };
+	dictionary_creator::utf8_string eng_up{ u8"ABCDEFGHIJKLMNOPQRSTUVWXYZ" };
+	for (size_t i = 0; i != eng_lo.size(); ++i)
+	{
+		dictionary_creator::letter_type l(1, eng_lo[i]);
+		dictionary_creator::letter_type u(1, eng_up[i]);
+		std::cout << '\t' << l << u8" → " << dictionary_creator::uppercase_letter(l, dictionary_creator::Language::English)
+			 << '\t' << u << u8" → " << dictionary_creator::uppercase_letter(u, dictionary_creator::Language::English) << std::endl;
+	}
+	for (auto i: std::set<dictionary_creator::utf8_string>({ "Another", "bright", "idea", "I", "got", "to", "Test", "Features", "1one" }))
+	{
+		std::cout << "\t[" << dictionary_creator::first_letter(i, dictionary_creator::Language::English) << "] " << i << std::endl;
+	}
+
+	std::cout << "First: french\n";
+	dictionary_creator::utf8_string fra_lo{ u8"aàâæbcçdeéêèëfghiïîjklmnoôœpqrstuùûüvwxyÿz" };
+	dictionary_creator::utf8_string fra_up{ u8"AÀÂÆBCÇDEÉÊÈËFGHIÏÎJKLMNOÔŒPQRSTUÙÛÜVWXYŸZ" };
+	for (size_t i = 0; i != fra_lo.size(); ++i)
+	{
+		if (!first_byte(fra_lo[i]))
+		{
+			continue;
+		}
+		dictionary_creator::letter_type l(1, fra_lo[i]);
+		if (auto f = fra_lo[i + 1]; !first_byte(f))
+		{
+			l += f;
+		}
+		dictionary_creator::letter_type u(1, fra_up[i]);
+		if (auto f = fra_up[i + 1]; !first_byte(f))
+		{
+			u += f;
+		}
+		std::cout << '\t' << l << u8" → " << dictionary_creator::uppercase_letter(l, dictionary_creator::Language::French)
+			 << '\t' << u << u8" → " << dictionary_creator::uppercase_letter(u, dictionary_creator::Language::French) << std::endl;
+	}
+	for (auto i: std::set<dictionary_creator::utf8_string>({ "Moi", "Ô", "peut", "être", "œufs", "sœurs", "mêtre", "ça", "Æschne" }))
+	{
+		std::cout << "\t[" << dictionary_creator::first_letter(i, dictionary_creator::Language::French) << "] " << i << std::endl;
+	}
+
+	std::cout << "Second: russian\n";
+	dictionary_creator::utf8_string rus_lo{ u8"абвгдеёжзийклмнопрстуфхцчшщьыъэюя" };
+	dictionary_creator::utf8_string rus_up{ u8"АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЬЫЪЭЮЯ" };
+	for (size_t i = 0; i != rus_lo.size(); ++i)
+	{
+		if (!first_byte(rus_lo[i]))
+		{
+			continue;
+		}
+		dictionary_creator::letter_type l{ rus_lo[i], rus_lo[i + 1] };
+		dictionary_creator::letter_type u{ rus_up[i], rus_up[i + 1] };
+		std::cout << '\t' << l << u8" → " << dictionary_creator::uppercase_letter(l, dictionary_creator::Language::Russian)
+			 << '\t' << u << u8" → " << dictionary_creator::uppercase_letter(u, dictionary_creator::Language::Russian) << std::endl;
+	}
+	for (auto i: std::set<dictionary_creator::utf8_string>({ "Обычный", "русский", "текст", "Для", "Проверки", "а", "Я", "не", "сомневался" }))
+	{
+		std::cout << "\t[" << dictionary_creator::first_letter(i, dictionary_creator::Language::Russian) << "] " << i << std::endl;
+	}
+
+	std::cout << "Third: german\n";
+	dictionary_creator::utf8_string ger_lo{ u8"aäbcdefghijklmnoöpqrstuüvwxyz" };
+	dictionary_creator::utf8_string ger_up{ u8"AÄBCDEFGHIJKLMNOÖPQRSTUÜVWXYZ" };
+	for (size_t i = 0; i != ger_lo.size(); ++i)
+	{
+		if (!first_byte(ger_lo[i]))
+		{
+			continue;
+		}
+		dictionary_creator::letter_type l(1, ger_lo[i]);
+		if (auto f = ger_lo[i + 1]; !first_byte(f))
+		{
+			l += f;
+		}
+		dictionary_creator::letter_type u(1, ger_up[i]);
+		if (auto f = ger_up[i + 1]; !first_byte(f))
+		{
+			u += f;
+		}
+		std::cout << '\t' << l << u8" → " << dictionary_creator::uppercase_letter(l, dictionary_creator::Language::German)
+			 << '\t' << u << u8" → " << dictionary_creator::uppercase_letter(u, dictionary_creator::Language::German) << std::endl;
+
+		if (l == "s")
+		{
+			l = u8"ß";
+			u = u8"ẞ";
+			std::cout << '\t' << l << u8" → " << dictionary_creator::uppercase_letter(l, dictionary_creator::Language::German)
+				 << '\t' << u << u8" → " << dictionary_creator::uppercase_letter(u, dictionary_creator::Language::German) << std::endl;
+		}
+	}
+	for (auto i: std::set<dictionary_creator::utf8_string>({ "Nun", "liebe", "kinder", "die", "Ärzte", "Scheiße", "Ördner" }))
+	{
+		std::cout << "\t[" << dictionary_creator::first_letter(i, dictionary_creator::Language::German) << "] " << i << std::endl;
+	}
+}
+
+void simple_tests::test_one_line_parser()
+{
+	std::cout << "\nTesting parsing of one line\n";
+
+	dictionary_creator::DictionaryManager english(dictionary_creator::Language::English);
+	dictionary_creator::utf8_string estring{ "This is an example of an english string of plain text. The word text here is encountered twice.\n" };
+	english.parse_one_line(estring);
+
+	std::cout << "\nSource line:\n" << estring << "\nUndefined words parsed out of that line:\n";
+	for (auto i: english.get_undefined())
+	{
+		std::cout << '\t' << i->get_word() << '\n';
+	}
+	std::cout << std::endl;
+
+	dictionary_creator::DictionaryManager russian(dictionary_creator::Language::Russian);
+	dictionary_creator::utf8_string rstring{ u8"Это пример русской строки, содержащей только текст. Слово текст встречается дважды. Пока всё.\r\n" };
+	russian.parse_one_line(rstring);
+
+	std::cout << "\nSource line:\n" << rstring << "\nUndefined words parsed out of that line:\n";
+	for (auto i: russian.get_undefined())
+	{
+		std::cout << '\t' << i->get_word() << '\n';
+	}
+	std::cout << std::endl;
+}

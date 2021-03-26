@@ -1,9 +1,9 @@
 #ifndef __DICTIONARY_TYPES_H__
 #define __DICTIONARY_TYPES_H__
 
-#include <string>
-#include <set>
-#include <map>
+#include <boost/serialization/string.hpp>
+#include <boost/serialization/map.hpp>
+#include <boost/serialization/set.hpp>
 #include <functional>
 
 namespace dictionary_creator

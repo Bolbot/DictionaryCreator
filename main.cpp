@@ -3,94 +3,137 @@
 #include <iostream>
 #include <locale>
 
-//#include "config.h"	// TODO: make this a conjunction of platform name and headers availability
-/*#if WINDOWS_H_IS_AVAILABLE && IO_H_IS_AVAILABLE*/
-#if defined _WIN32 && __has_include(<Windows.h>) 
+#include "config.h"
+#if WINDOWS_H_IS_AVAILABLE && IO_H_IS_AVAILABLE
 #include <io.h>
 #include <Windows.h>
+
 bool UTF8_awareness_for_windows_console = [] () { return SetConsoleOutputCP(CP_UTF8) && SetConsoleCP(CP_UTF8); }();
+
+auto crossplatform_getline = [] (std::istream &input, std::string &dest) -> std::istream &
+{
+	constexpr size_t WBUFFER_SIZE = 8192;
+	constexpr size_t CBUFFER_SIZE = WBUFFER_SIZE * 3 + 1;
+
+	wchar_t wbuffer[WBUFFER_SIZE] { 0 };
+	char charbuffer[CBUFFER_SIZE] { 0 };
+
+	HANDLE input_handle = GetStdHandle(STD_INPUT_HANDLE);
+	if (input_handle == nullptr || input_handle == INVALID_HANDLE_VALUE)
+	{
+		throw std::runtime_error("Failed to acquire input handle in MS Windows");
+	}
+
+	DWORD read = 0;
+
+	if (ReadConsole(input_handle, wbuffer, WBUFFER_SIZE, &read, nullptr) == 0)
+	{
+		throw std::runtime_error("Failed to read from MS Windows console");
+	}
+
+	auto converted_size = WideCharToMultiByte(CP_UTF8, 0, wbuffer, read, charbuffer, CBUFFER_SIZE, nullptr, nullptr);
+
+	std::string result(charbuffer, converted_size);
+
+	while (!result.empty() && (result.back() == '\r' || result.back() == '\n'))
+	{
+		result.pop_back();
+	}
+
+	dest = result;
+
+	return input;
+};
+
+std::wstring platform_dependent_encoding(std::string source)
+{
+	std::wstring result(source.size(), wchar_t{});
+
+	MultiByteToWideChar(CP_UTF8, 0, source.data(), source.size(), result.data(), result.size());
+
+	return result;
+}
+
+#else
+
+auto crossplatform_getline = [] (std::istream &input, std::string &dest) -> std::istream &
+{
+	return std::getline(input, dest);
+};
+
+std::string platform_dependent_encoding(std::string source)
+{
+	return source;
+}
+
 #endif
 
 #include "simple_tests.h"
+#include "huge_test.h"
 #include "dictionary_manager.h"
 
 // DO NOT!!! Don't test web lookup on huge files because this leads to 403 error and abortion of application
 // TO-DO:	check HTTP status before procceeding with any presumable response content
 //		provide error messages in case of unsuccessfull response status upon lookup attempts	DONE
 //
-// Crucial fix TODO:	revise the approach of defining, definer_t definer does not belong to Dictionary class,
-// 			PROBLEM: it's instantiated for each other object while entries keep dangling references
-// 			PROBABLE FIX: aim towards creating a single instance of such a definer somewhere else
-// 					so that Dictionary could keep a reference just like Entry does
-// 					each time new Dictionary is created that definer is retrieved from somewhere
-// 					if the language matches, then it's gonna be the reference to the same object
-// 			REQUIREMENT: lifetime of the definer must match the program lifetime so that dangling reference is practically impossible
-// 			ARCHITECTURE: consider having a singletone definer, make_definer(Language) function, and array along with language stuff
 //
-// Windows TODO:	Teach Windows to open files with spaces (\screening suffices) and unicode characters in path
+// Windows TO-DO:	Teach Windows to open files with spaces (\screening suffices) and unicode characters in path DONE
+// Windows-2 TO-DO:	Reimplement former feature via UTF-16 encoded wstrings	DONE
 //
-//
-// Architecture TODO:	ensure inner consistency of classes DONE
-// 				complete inner reimplementation debt TODOs DONE
+// Architecture TO-DO:	ensure inner consistency of classes DONE
+// 				complete inner reimplementation debt TO-DOs DONE
 // 				move type aliases to separate dictionary_types.h header DONE
-// 			rewrite stored types from variable Entries to shared_ptr<Entry>
-// 				reimplement all functions dealing with Entry
-// 				make Entry type polymorphic (add virtual destructor)
-// 				provide custom sort with one more possible ComparisonType::Custom
-// 				create one more custom sort overload accepting template Comp if ::Custom
-// 				wrap that custom in another lambda dealing with results of dynamic_cast<> failure
-// 			find every place that is creating an Entry and make it template, accepting CustomEntry type with Entry as default
-//			check if necessity in const remains after turn to pointer storing, get rid of it if possible
+// 			rewrite stored types from variable Entries to shared_ptr<Entry>	DONE
+// 				reimplement all functions dealing with Entry		DONE
+// 				make Entry type polymorphic (add virtual destructor)	DONE
+// 				provide custom sort with one more possible ComparisonType::Custom			DONE
+// 				create one more custom sort overload accepting template Comp if ::Custom		DONE
+// 				wrap that custom in another lambda dealing with results of dynamic_cast<> failure	DONE
+// 			find every place that is creating an Entry and make it template, accepting CustomEntry type with Entry as default	DONE
+//			check if necessity in const remains after turn to pointer storing, get rid of it if possible				DONE
 //
-// Linking TO-DO:	clarify the structure of the project DONE, see below
-// 			rewrite the CMakeLists.txt according to that structure DONE
-// 			make sure everything compiles and links DONE
-//
-// 			STRUCTURE
-//
-// 			DictionaryEntry -- self-sufficent as .h and .cpp, declares aliases for utf8_string, definitions_t and definer_t
-// 			Dictionary and DictionaryExporter -- requires NlohmanJson, connectionss, and DictionaryEntry linked and includes dictionary_language.h
-// 			DictionaryCreator -- requires regex_parser and Dictionary linked
-// 			DictionaryManager -- user interface, requires Dictionary, and DictionaryCreator linked
-// 						also needs to have a complete interface accorting to following
-//
-// Interface TO-DO:	assure interface integrity and sufficency according to anticipated use scenario:
-// 			add file streams of files to be parsed
-// 			parse all pending files to dictionary
-// 			lookup for separate words or add them
-// 			retrieve custom words subset
-// 			export previous or all to given file stream
-//
-// TDD Routine TODO:	write tests for the interface features DONE
+// TDD Routine TO-DO:	write tests for the interface features DONE
 //			provide all the interface features developed DONE
 //			when all beforementioned works consider interface development DONE
-//			write a huge complex test involving all of those features
-//			check its work on two languages: english and russian
+//			write a huge complex test involving all of those features DONE
+//			check its work on two languages: english and russian DONE
 //
-// Convenience TO-DO:	get rid of redundant aliases, that is DictionaryEntryType for Entry DONE
-// 			make sure all member function names are specific enough DONE
+// Considerable optimization TO-DO:	provide DefaultEntrySorter with transparent comparator overloads accepting string_view
+// 					use that for the lookup features
+// 					get a rule-of-thumb measurements of the effectiveness impact using HUGE TEST	DONE: 1/6 faster now
 //
-// Portability TO-DO:	get rid of ugly and unnecessary preprocessor directives provided in false attempts to crossplatform
-// 			make sure every text occurence is stored in valid UTF-8 std::string
-// 			provide an alias for it nontheless, in case of future development beyond <char> typed string
+// Important feature TO-DO:		provide user-supplied string parsing to the dictionary	DONE
 //
-// Modularity TO-DO:	revise structure, main unit shall be rather simple Dictionary class with its support classes:
-// 				Entry stores processed words along with their definitions and some supplement info, flags etc.
-// 				FileParser provides interface accepting file names or UTF-8 aware streams with LanguageInfo
-// 				LanguageInfo provides generalized patterns for regular expression parsing
-// 			Dictionary may be unaware of language it stores, but LanguageInfo must provide it preventing to join mismatching objects
-// 			Previously mentioned should belong to one namespace, although may be contained in different translation units
+// Serialization TODO:			rewrite insides using the boost data structure includes		DONE
+// 					add template serialize functions				DONE
+// 					link boost where necessary					DONE
 //
-// Unicode TO-DO:	Revise implementations of classes dealing with letter - it must be LetterType -- unnecessary difficulties and obscuration
-// 			provide LetterType get_first_letter(WordType); function -- DONE
+// 					add to the DictionaryManager following functions:
 //
-// Further features TO-DO: 	choose and provide features for further use like get_random_word, DONE
-// 				consider allowance to derive from Entry to supply custom info and sorter types DONE, verdict: POSSIBLE
-// 				sorting by priority, storing custom info like priority, difficulty etc.
+// 					.rename(string)			to name the dictionary, stored in member string			|
+// 					.get_name() const		returns the dictionary name					| DONE
+// 					.save_dictionary() const	saves dictionary under current name (default one available)	|
 //
-// Premature optimization TODO: consider using custom allocation for storing dictionary
+// 					add the namespace-scoped function that accepts the file name and returns DictionaryManager object
+// 					DictionaryManager load_dictionary(file name)		DONE
+// 					DictionaryManager load_dictionary(ifstream)		DONE
+// 					in case of failure throws runtime errors		DONE
 //
-// Options TO-DO: provide a define_some_words function, taking vector of pointers to entries to be defined DONE
+// 					for further user convenience provide a function returning list of all possible dictionaries	|
+// 					std::vector<std::string> available_dictionaries()						|
+// 					consider returning a pair of load_dictionary-required filename and user-readable filename	|
+// 					possible type is std::pair<string, string_view> or custom struct instead of the std::pair	| DONE
+//
+// 					design some tests to check the correctness of the abovementioned		DONE
+// 					write tests as parts of huge_test						DONE
+// 					check the correctness using both english and russian version
+//
+// Refinement TODO:	make load_dictionary return the DictionaryManager objects with names corresponding to requested ones
+//
+// Premature optimization TODO: 	consider using custom allocation for storing dictionary
+// 					deduce required space upon dictionary loading
+// 					how to resize when more space is needed during the work?
+// 					what if there is not enough allocated space?
 //
 // Most distant TODO: implement task-based or thread-pool-based concurrent beforehand web-api processing of non-capitalized words
 // 			DEBATABLE NECESSITY
@@ -134,8 +177,6 @@ bool UTF8_awareness_for_windows_console = [] () { return SetConsoleOutputCP(CP_U
 //			Table or list of pending files to be processed
 //			(perhaps) already processed files as greyed out lines
 //
-//		
-//				
 
 template <typename Lambda, typename TimeUnit = std::chrono::milliseconds>
 auto execution_time(Lambda wrapped_task)
@@ -147,110 +188,14 @@ auto execution_time(Lambda wrapped_task)
 	return std::chrono::duration_cast<TimeUnit>(after - before);
 }
 
-void tests()
-{
-	std::cout << "Tests\n";
-
-	bool test_json = false;
-	bool test_regex = true;
-/*
-	if (test_json)
-	{
-		output << "\nTesting json\n";
-
-		std::wstring must_be_json{ LR",,,([{"word":"hello","phonetics":[{"text":" / həˈloʊ / ","audio":"https://lex-audio.useremarkable.com/mp3/hello_us_1_rr.mp3"},{"text":"/hɛˈloʊ/","audio":"https://lex-audio.useremarkable.com/mp3/hello_us_2_rr.mp3"}],"meanings":[{"partOfSpeech":"exclamation","definitions":[{"definition":"Used as a greeting or to begin a phone conversation.","example":"hello there, Katie!"}]},{"partOfSpeech":"noun","definitions":[{"definition":"An utterance of “hello”; a greeting.","example":"she was getting polite nods and hellos from people","synonyms":["greeting","welcome","salutation","saluting","hailing","address","hello","hallo"]}]},{"partOfSpeech":"intransitive verb","definitions":[{"definition":"Say or shout “hello”; greet someone.","example":"I pressed the phone button and helloed"}]}]}]),,," };
-		std::wstring russian_json{ LR",,,([{"word":"ГУЛЯ́ТЬ","phonetics":[{}],"meanings":[{"partOfSpeech":"undefined","definitions":[{"definition":"Совершать прогулку.","example":"Г. с детьми","synonyms":[],"antonyms":[]},{"definition":"Быть свободным от работы, иметь выходной день разг..","example":"Гуляли два дня","synonyms":[],"antonyms":[]},{"definition":"Кутить, веселиться прост..","example":"Г. на свадьбе","synonyms":[],"antonyms":[]},{"definition":"Быть в близких, любовных отношениях прост..","synonyms":[],"antonyms":[]}]}]}]),,," };
-
-		try
-		{
-			auto some_json = parse_json(russian_json);
-			
-			auto definition = dict::single_definition(some_json);
-			output << "One definition is: " << definition << std::endl;
-
-			auto set = dict::set_of_definitions(some_json);
-			output << "Set of " << set.size() << " definitions:\n";
-			for (const auto &x : set)
-			{
-				output << '\t' << x << std::endl;
-			}
-			output << std::endl;
-
-			output << "Map of all definitions:\n";
-			auto map = dict::part_of_speech_definitions_map(some_json);
-			for (auto[pos, defs] : map)
-			{
-				output << pos << "\n";
-				for (auto d : defs)
-				{
-					output << "\t" << d << std::endl;
-				}
-			}
-			output << std::endl;
-
-			auto irrelevant = parse_json(connections::get("https://yahoo.com"));
-			auto irrdef = dict::single_definition(irrelevant);
-			output << "\n\nIRRELEVANT page. Single definition: " << irrdef << std::endl;
-			auto irrpos = dict::part_of_speech_definitions_map(irrelevant);
-			output << "Map of part of speech for irrelevant has size: " << irrpos.size() << std::endl;
-		}
-		catch (std::exception &e)
-		{
-			error_output << "It throws: " << e.what() << std::endl;
-		}
-		catch (...)
-		{
-			error_output << "It throws something that can't be caught\n";
-		}
-	}
-
-	if (test_regex)
-	{
-		output << "\n\nTesting regular expressions\n";
-
-		std::string pattern{ R"(Z[a-z]{4,6}\b)" };
-		pcre_parser::RegexParser parser(pattern.c_str());
-		std::string line{ "My name is Zorro\n- What? Was it Zero or Zealot or Zombie?\n- No, Zorro!" };
-		std::cout << "Given source:\n" << line << "\nSearching with pattern \'" << pattern << "\'\n";
-
-		std::cout << "Single match result: \'" << parser.single_match(line) << "\'\n";
-
-		std::cout << "Every match: ";
-		for (const auto &i: parser.all_matches(line))
-		{
-			std::cout << i << ' ';
-		}
-		std::cout << std::endl;
-	}
-	*/
-}
-
 void manage_dictionary()
 {
 	std::cout << "Write full path of file to add it to dictionary\n> " << std::flush;
 
-	while (true)
-	{
-		std::string path;
-		std::cin.imbue(std::locale("en_US.UTF-8"));
-		std::getline(std::cin, path);
-
-		std::ifstream file(path);
-		if (file.good())
-		{
-			std::cout << "Valid file, trying to process...\n";
-		}
-		else
-		{
-			std::cout << "Can't process this file, seems invalid\n";
-			std::cin.clear();
-		}
-	}
-
 	std::string path;
-	std::getline(std::cin, path);
+	crossplatform_getline(std::cin, path);
 
-	std::ifstream file(path);
+	std::ifstream file(platform_dependent_encoding(path));
 	if (file.good())
 	{
 		std::cout << "Valid file, trying to process...\n";
@@ -278,7 +223,7 @@ void manage_dictionary()
 		}
 		std::cout << "Those are going to be defined.\n";
 	}
-	//dm.define(longest_7);
+	dm.define(longest_7);
 
 	std::cout << "Write the output file name\n> ";
 	std::string output_file;
@@ -306,7 +251,7 @@ void manage_dictionary()
 
 int main (int argc, char **argv)
 {
-	auto program_title = u8"DictionaryCreator 0.8.2";
+	auto program_title = u8"DictionaryCreator 0.8.3";
 	std::cout << program_title << std::endl;
 #ifdef _WIN32
 	if (!UTF8_awareness_for_windows_console)
@@ -315,17 +260,17 @@ int main (int argc, char **argv)
 	}
 #endif
 
-	bool make_tests_not_work = false;
-
-	if (argc > 1 && !strncmp(argv[1], "TEST", 4))
+	if (argc == 2)
 	{
-		make_tests_not_work = true;
-	}
-
-	if (make_tests_not_work)
-	{
-		simple_tests::tests(program_title);
-		return 0;
+		if (!strncmp(argv[1], "TEST", 4))
+		{
+			simple_tests::tests(program_title);
+		}
+		
+		if (!strncmp(argv[1], "HUGETEST", 8))
+		{
+			huge_test::run_all_tests();
+		}
 	}
 	else
 	{

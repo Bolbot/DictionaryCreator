@@ -7,3 +7,7 @@ windows_build/
 *.ts
 *.test
 lowercase_string.h
+TEST*
+benchmark_results/
+config.h
+Saved dictionaries/
