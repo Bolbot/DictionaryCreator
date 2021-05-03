@@ -1,5 +1,7 @@
 #include "connections.h"
 
+#include <string>
+
 
 #ifdef __CURL_IS_AVALIABLE__
 
@@ -10,10 +12,6 @@ struct CurlGlobalHandle
 		if (curl_global_init(CURL_GLOBAL_ALL) != 0)
 		{
 			std::cerr << "Problems with curl global initialization. All further use of curl is undefined\n";
-		}
-		else
-		{
-			std::cout << "Using curl for https access.\n";
 		}
 	}
 	~CurlGlobalHandle()
@@ -60,8 +58,8 @@ public:
 
 			if (!valid_state || status != 200)
 			{
-				std::cout << "HTTP " << status << " for " << address << std::endl;
-				response = "Web resourse is unavaliable";
+			//	std::cout << "HTTP " << status << " for " << address << std::endl;
+				response = "HTTP " + std::to_string(status) + " failed to access " + address;
 			}
 		}
 	}

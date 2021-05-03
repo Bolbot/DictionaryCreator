@@ -5,6 +5,11 @@
 #include <boost/serialization/map.hpp>
 #include <boost/serialization/set.hpp>
 #include <functional>
+#include <exception>
+
+#ifdef _WIN32
+	#include <stdexcept>
+#endif
 
 namespace dictionary_creator
 {
@@ -15,6 +20,12 @@ namespace dictionary_creator
 	using definer_t = std::function<definitions_t(utf8_string)>;
 
 	using letter_type = utf8_string;
+
+	class dictionary_runtime_error : public std::runtime_error
+	{
+	public:
+		using std::runtime_error::runtime_error;
+	};
 }
 
 #endif

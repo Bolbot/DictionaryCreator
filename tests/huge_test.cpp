@@ -2,6 +2,10 @@
 
 #include <bitset>
 
+constexpr size_t long_words_set_size_time_consuming = 10'000;
+
+/*
+
 void huge_test::dm_creation()
 {
 	dictionary_creator::DictionaryManager eng(dictionary_creator::Language::English);
@@ -16,9 +20,9 @@ void huge_test::special_cases()
 
 	std::string same_word_filename = "HUGE_TEST_source_same_word_many_times.txt";
 
-	constexpr size_t number = 10'080'999;
+	constexpr size_t number = 100'000;
 
-	dictionary_creator::utf8_string word = u8"buffalo";
+	dictionary_creator::utf8_string word = u8"toolongtooptimizeviashortstringoptimizationihope";
 
 	if (std::ofstream output(same_word_filename); output.good())
 	{
@@ -212,7 +216,6 @@ void huge_test::main_huge_test_english()
 {
 	std::cout << "\nHUGE TEST for DictionaryManager lib and features. English version.\n" << std::endl;
 
-	//dm_creation();
 	auto basic_words = prepare_words();
 	auto first_set = prepare_more_words(basic_words, 1'000'000, 'k', 'q');
 	auto second_set = prepare_more_words(basic_words, 1'000'000, 's', 'z');
@@ -413,7 +416,7 @@ void huge_test::main_huge_test_english()
 			}
 		}
 		return set;
-	}(10'000);
+	}(long_words_set_size_time_consuming);
 
 	std::string source_3 = "HUGE_TEST_source_file_three.txt";
 	print_to_file(third_set, source_3);
@@ -1246,7 +1249,7 @@ size_t total_pn = 0;
 			}
 		}
 		return set;
-	}(10'000);
+	}(long_words_set_size_time_consuming);
 
 	std::string source_3 = "HUGE_TEST_source_file_three.rus.txt";
 	print_to_file(third_set, source_3);
@@ -1816,77 +1819,6 @@ size_t total_pn = 0;
 	std::cout << "HUGE TEST is done. See benchmark results in " << resfile << std::endl;
 }
 
-void d3v3l0p1n9()
-{
-	std::cout << "Developing features...\n";
-
-	std::cout << u8"Русский алфавит:\n\n";
-
-	dictionary_creator::letter_type lc = u8"а";
-	dictionary_creator::letter_type uc = u8"А";
-
-	while (lc <= u8"я")
-	{
-		std::cout << lc << " → " << dictionary_creator::uppercase_letter(lc, dictionary_creator::Language::Russian) << '\t'
-			<< uc << " → " << dictionary_creator::uppercase_letter(uc, dictionary_creator::Language::Russian) << '\n';
-
-		if (lc == u8"е")
-		{
-			std::cout << u8"ё" << " → " << dictionary_creator::uppercase_letter(u8"ё", dictionary_creator::Language::Russian) << '\t'
-				<< u8"Ё" << " → " << dictionary_creator::uppercase_letter(u8"Ё", dictionary_creator::Language::Russian) << '\n';
-		}
-
-		lc = get_next_letter(lc);
-		uc = get_next_letter(uc);
-	}
-	std::cout << std::endl;
-
-	dictionary_creator::utf8_string russian_text = u8"А будь Владимир гражданином достойным... Ели ёжиков жили завидно и креативно, Лаврентий"
-	       u8" меж них очень протестовал: Россия — страна твоя, Ульянушка, фиников хоть ценных Чеслав Шумилов щупал, экивок Юрмалы... Я?!";
-	std::string filename = "HUGE_TEST_source_file_X_testing_russian.txt";
-	if (std::ofstream output(filename); output.good())
-	{
-		output << russian_text << std::endl;
-	}
-
-	dictionary_creator::DictionaryCreator dc(dictionary_creator::Language::Russian);
-	if (std::ifstream input_stream(filename); input_stream.good())
-	{
-		dc.add_input(std::move(input_stream));
-	}
-
-	auto russian = dc.parse_to_dictionary();
-	std::cout << "\nGot this dictionary: " << typeid(russian).name() << std::endl;
-
-	std::cout << "Total words: " << russian.total_words() << std::endl;
-
-	auto checkword = [&russian] (dictionary_creator::utf8_string word)
-	{
-		if (auto res = russian.lookup(word); res.get() == nullptr)
-		{
-			std::cout << word << " is absent\n";
-		}
-	};
-
-	checkword(u8"будь");
-	checkword(u8"вы");
-	checkword(u8"гад");
-	checkword(u8"жить");
-	checkword(u8"креативно");
-	checkword(u8"и");
-	checkword(u8"очень");
-	checkword(u8"просто");
-	checkword(u8"сука");
-	checkword(u8"ценишь");
-
-	std::cout << "\n\n\nAvailable words:\n";
-	for (auto i: russian.get_undefined())
-	{
-		std::cout << i->get_word() << "\n";
-	}
-	std::cout << std::endl;
-}
-
 void huge_test::run_all_tests()
 {
 	huge_test::special_cases();
@@ -1894,8 +1826,13 @@ void huge_test::run_all_tests()
 //	huge_test::main_huge_test_english();
 
 //	huge_test::main_huge_test_russian();
-
-//	d3v3l0p1n9();
 }
 
-// lines 416 and 1249 argument to adjust time (half a million is good but very long)
+*/
+
+int main(int argc, char **argv)
+{
+//	huge_test::run_all_tests();
+
+	return 0;
+}

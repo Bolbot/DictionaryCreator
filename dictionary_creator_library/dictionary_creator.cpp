@@ -1,8 +1,5 @@
 #include "dictionary_creator.h"
 
-// FOR DEBUG
-#include <thread>
-
 dictionary_creator::DictionaryCreator::DictionaryCreator(Language language)
 	:
 	language{ language },
@@ -34,7 +31,6 @@ dictionary_creator::DictionaryCreator::DictionaryCreator(Language language)
 					+ dictionary_creator::utf8_string{ "][" }
 					+ dictionary_creator::lowercase_letters[static_cast<size_t>(language)]
 					+ dictionary_creator::utf8_string{ u8R"(]+){1}\s?.*$)" };
-			//	std::cout << "\n\nRegular expression for name at the start of the line is:\n" << res << std::endl;
 				return res;
 			}()
 			}.c_str())
@@ -52,39 +48,33 @@ dictionary_creator::DictionaryCreator::DictionaryCreator(Language language)
 					+ dictionary_creator::utf8_string{ "]{" }
 					+ std::to_string(minimal_substantial_word_length)
 					+ dictionary_creator::utf8_string{ ",}" };
-			//	std::cout << "\n\nRegular expression for words is:\n" << res << std::endl;
 				return res;
 			}()
 			}.c_str())
 	}
 {}
 
-void dictionary_creator::DictionaryCreator::add_input(std::ifstream &&input_stream)
+void dictionary_creator::DictionaryCreator::add_input(std::unique_ptr<std::istream> &&uptr_to_stream)
 {
-	input_files.push_back(std::move(input_stream));
+	input_files.push_back(std::move(uptr_to_stream));
 }
 
 dictionary_creator::Dictionary dictionary_creator::DictionaryCreator::parse_to_dictionary()
 {
 	dictionary_creator::Dictionary result(language);
 
-	std::cout << "Parsing " << input_files.size() << " streams:\n[" << std::flush;
 	for (auto &input_stream: input_files)
 	{
-		if (input_stream.good())
+		if (input_stream->good())
 		{
-			dictionary_creator::Dictionary file_dictionary = parse_one_file(input_stream);
+			dictionary_creator::Dictionary file_dictionary = parse_one_file(*input_stream);
 			result.merge(std::move(file_dictionary));
-			std::cout << '+';
 		}
-		else
-		{
-	//		std::cerr << "Input not in a good state\n";
-			std::cout << '-';
-		}
-		std::cout << std::flush;
+		input_stream.reset();
 	}
-	std::cout << "]\n" << std::endl;
+
+	auto first_removed = std::remove_if(input_files.begin(), input_files.end(), [](const std::unique_ptr<std::istream> &s) { return s == nullptr;  });
+	input_files.erase(first_removed, input_files.end());
 
 	return result;
 }
@@ -113,7 +103,7 @@ dictionary_creator::Dictionary dictionary_creator::DictionaryCreator::parse_line
 	return dictionary;
 }
 
-dictionary_creator::Dictionary dictionary_creator::DictionaryCreator::parse_one_file(std::ifstream &file_input)
+dictionary_creator::Dictionary dictionary_creator::DictionaryCreator::parse_one_file(std::istream &file_input)
 {
 	dictionary_creator::Dictionary dictionary(language);
 

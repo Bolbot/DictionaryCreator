@@ -1,7 +1,5 @@
 #include "dictionary_entry.h"
 
-#include <iostream>		// FOR DEBUG
-
 dictionary_creator::Entry::Entry(dictionary_creator::utf8_string word)
 	: word{ std::move(word) }, encounters{ 1 }, defined{ false }
 {}
@@ -53,7 +51,9 @@ dictionary_creator::Entry::operator const char *() const noexcept
 
 dictionary_creator::Entry::~Entry() = default;
 
+/*
 bool dictionary_creator::operator<(const dictionary_creator::Entry &a, const dictionary_creator::Entry &b)
 {
 	return a.get_word() < b.get_word();
 }
+*/

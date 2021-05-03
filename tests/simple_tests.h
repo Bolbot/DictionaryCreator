@@ -39,6 +39,9 @@ namespace simple_tests
 	void test_letter_related_features();
 
 	void test_one_line_parser();
+
+	void test_serialization();
+
 }
 
 #endif

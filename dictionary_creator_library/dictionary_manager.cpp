@@ -4,22 +4,57 @@ dictionary_creator::DictionaryManager::DictionaryManager(dictionary_creator::Lan
 	definer{ [language] (dictionary_creator::utf8_string word) { return define_word(std::move(word), language); } },
 	dictionary{ language },
 	creator{ language },
-	exporter{ std::cout, u8"----" }
+	exporter{ &std::cout }
 {
 	srand(time(nullptr));
 }
 
-void dictionary_creator::DictionaryManager::add_input_file(std::ifstream &&input_stream)
-{
-	creator.add_input(std::move(input_stream));
-}
-
+/*	// OBSOLETE
 void dictionary_creator::DictionaryManager::add_input_file(std::string file_name)
 {
-	std::ifstream stream(file_name);
-	if (stream.good())
+	constexpr bool prebuffered_file_input = true;
+
+	if constexpr (prebuffered_file_input)
 	{
-		creator.add_input(std::move(stream));
+		std::ifstream stream(file_name);
+
+		if (stream.good())
+		{
+			stream.seekg(0, std::ios::end);
+			const std::streamsize size = stream.tellg();
+			stream.seekg(0, std::ios::beg);
+
+			std::string buffer(size, 0);
+			stream.read(buffer.data(), buffer.size());
+			auto contents = std::make_unique<std::istringstream>(buffer);
+
+			creator.add_input(std::move(contents));
+		}
+	}
+	else
+	{
+		if (std::ifstream just_a_check(file_name); just_a_check.good() == false)
+		{
+			return;
+		}
+		creator.add_input(std::unique_ptr<std::istream>(new std::ifstream(file_name)));
+	}
+}
+*/
+
+void dictionary_creator::DictionaryManager::add_input_file(std::ifstream &&file_stream)
+{
+	if (file_stream.good())
+	{
+		file_stream.seekg(0, std::ios::end);
+		const std::streamsize size = file_stream.tellg();
+		file_stream.seekg(0, std::ios::beg);
+
+		std::string buffer(size, 0);
+		file_stream.read(buffer.data(), buffer.size());
+
+		auto contents = std::make_unique<std::istringstream>(buffer);
+		creator.add_input(std::move(contents));
 	}
 }
 
@@ -126,7 +161,7 @@ const dictionary_creator::subset_t &dictionary_creator::DictionaryManager::defin
 
 void dictionary_creator::DictionaryManager::set_output(std::ostream &output_stream)
 {
-	exporter = DictionaryExporter(output_stream, undefined_warnings[static_cast<size_t>(dictionary.get_language())]);
+	exporter = DictionaryExporter(&output_stream, undefined_warnings[static_cast<size_t>(dictionary.get_language())]);
 }
 
 void dictionary_creator::DictionaryManager::export_dictionary(dictionary_creator::ExportOptions options)
@@ -183,6 +218,7 @@ void dictionary_creator::DictionaryManager::save_dictionary() const
 	if (output.good())
 	{
 		boost::archive::text_oarchive oa(output);
+		oa & name;
 		oa & dictionary;
 	}
 	else
@@ -193,39 +229,24 @@ void dictionary_creator::DictionaryManager::save_dictionary() const
 
 dictionary_creator::DictionaryManager dictionary_creator::load_dictionary(dictionary_creator::utf8_string dictionary_filename)
 {
-	dictionary_creator::Dictionary acquired(dictionary_creator::Language::English);		// TODO: get rid of english-initialization clumsiness
+	dictionary_creator::Dictionary acquired_dictionary(dictionary_creator::Language::Uninitialized);
+
+	dictionary_creator::utf8_string acquired_name;
 
 	if (std::ifstream stream(dictionary_filename); stream.good())
 	{
 		boost::archive::text_iarchive ia(stream);
-		ia & acquired;
+		ia & acquired_name;
+		ia & acquired_dictionary;
 	}
 	else
 	{
 		throw std::runtime_error("Failed to read the file");
 	}
 
-	dictionary_creator::DictionaryManager result(acquired.get_language());
-	result.dictionary = std::move(acquired);
-	return result;
-}
-
-dictionary_creator::DictionaryManager dictionary_creator::load_dictionary(std::ifstream &&dictionary_file)
-{
-	dictionary_creator::Dictionary acquired(dictionary_creator::Language::English);		// TODO: get rid of english-initialization clumsiness
-
-	if (dictionary_file.good())
-	{
-		boost::archive::text_iarchive ia(dictionary_file);
-		ia & acquired;
-	}
-	else
-	{
-		throw std::runtime_error("Failed to read the file");
-	}
-
-	dictionary_creator::DictionaryManager result(acquired.get_language());
-	result.dictionary = std::move(acquired);
+	dictionary_creator::DictionaryManager result(acquired_dictionary.get_language());
+	result.rename(std::move(acquired_name));
+	result.dictionary = std::move(acquired_dictionary);
 	return result;
 }
 

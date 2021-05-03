@@ -8,12 +8,13 @@ bool simple_tests::isprintable(char character) noexcept
 	return std::isprint(static_cast<unsigned char>(character));
 }
 
+
 void simple_tests::tests(const char *program_name)
 {
 	std::cout << "Tests for " << program_name << std::endl;
 
 	simple_tests::test_connections();
-
+/*
 	simple_tests::test_entry();
 
 	simple_tests::test_dictionary();
@@ -29,6 +30,9 @@ void simple_tests::tests(const char *program_name)
 	simple_tests::test_letter_related_features();
 
 	simple_tests::test_one_line_parser();
+
+	simple_tests::test_serialization();
+*/
 }
 
 void simple_tests::test_connections()
@@ -40,6 +44,8 @@ void simple_tests::test_connections()
 	
 	auto https = connections::get("https://api.dictionaryapi.dev/api/v2/entries/en/hello");
 	std::cout << "https: " << (https.size() > 100 ? "successfull" : https.data()) << std::endl;
+
+	std::cout << "\n\n" << https << "\n\n";
 
 	auto nonexistent = connections::get("https://nonexis.tent.pa.ge.com");
 	std::cout << "nonexistent page: " << nonexistent << std::endl;
@@ -338,8 +344,8 @@ void simple_tests::test_dictionary_creator()
 	std::cout << "DictionaryCreator type " << typeid(creator).name() << "\t\tsize " << sizeof(creator) << std::endl;
 
 	dictionary_creator::utf8_string file_name{ "English_Q.text" };
-	std::ifstream notUTF(file_name);
-	creator.add_input(std::move(notUTF));
+	std::unique_ptr<std::istream> uptr_ifs{ new std::ifstream(file_name) };
+	creator.add_input(std::move(uptr_ifs));
 
 	std::cout << "Parsing file " << file_name << " (sure if it exists)\n";
 	
@@ -352,7 +358,8 @@ void simple_tests::test_dictionary_creator()
 	};
 	
 	dictionary_creator::utf8_string another_file_name{ "English_A.text" };
-	creator.add_input(std::ifstream(another_file_name));
+	std::unique_ptr<std::istream> uptr_ifs2{ new std::ifstream(another_file_name) };
+	creator.add_input(std::move(uptr_ifs2));
 	std::cout << "Also we add another file that is " << another_file_name << " the dictionary is:\n";
 	print_dictionary(creator.parse_to_dictionary().get_top(dictionary_creator::ComparisonType::MostFrequent, 1000));
 }
@@ -399,7 +406,7 @@ void simple_tests::test_dictionary_exporter()
 	}
 	std::cout.clear();
 
-	dictionary_creator::DictionaryExporter exporter(std::cout);
+	dictionary_creator::DictionaryExporter exporter(&std::cout);
 	std::cout << "DictionaryExporter type " << typeid(exporter).name() << "\tsize " << sizeof(exporter) << std::endl;
 
 	std::cout << "Now using it to export given dictionary to std::cout:\n";
@@ -434,7 +441,7 @@ void simple_tests::test_dictionary_manager()
 		std::ifstream english_Q{ file_name_one };
 
 		std::cout << "Using files:\n\t" << file_name_one << "\n\t" << file_name_two << std::endl;
-		copy.add_input_file(std::move(english_Q));
+		copy.add_input_file(file_name_one);
 		copy.add_input_file(file_name_two);
 		copy.parse_all_pending();
 
@@ -648,15 +655,15 @@ void simple_tests::test_custom_entry_type()
 	std::cout << "Testing custom Entry type\n";
 
 	dictionary_creator::DictionaryManager eng(dictionary_creator::Language::English);
-
+/*
 	eng.add_input_file("English_A.text");
+*/	
 	eng.parse_all_pending();
 
 	eng.lookup_or_add_word("antidisestablishmentarianism");
 
 	eng.lookup_or_add_word<DifficultyEntry>("analogy", DifficultyEntry::difficulty::Normal);
 	//eng.lookup_or_add_word<ImproperEntry>("improper", DifficultyEntry::difficulty::Normal);
-	
 	eng.lookup_or_add_word<DifficultyEntry>("ambiguous", DifficultyEntry::difficulty::Normal);
 
 	auto check_difficulty = [] (const std::shared_ptr<dictionary_creator::Entry> &sp)
@@ -719,79 +726,6 @@ void simple_tests::test_custom_entry_type()
 		check_difficulty(i);
 	}
 }
-
-/*
-dictionary_creator::letter_type get_next_letter(dictionary_creator::letter_type letter)
-{
-	auto first_octet = static_cast<size_t>(letter.front());
-	size_t bytes = 0;
-	for (size_t i = 1 << 7; (first_octet & i) != 0ull; i >>= 1)
-	{
-		++bytes;
-	}
-	if (bytes == 0)
-	{
-		bytes = 1;
-	}
-
-//	std::cout << "get_next_letter(" << letter << ")\t\tsize of it is " << letter.size() << "\tbytes: " << bytes << std::endl;
-
-	size_t target = 0;
-	size_t shift = 0;
-	for (size_t i = bytes - 1; i != 0; --i)
-	{
-		auto octet = static_cast<size_t>(letter[i]);
-
-		if ((octet & 0xC0) != 0x80)
-		{
-			throw std::runtime_error("broken UTF-8 letter");
-		}
-		octet &= 0x3F;
-		octet <<= shift;
-		target |= octet;
-
-		shift += 6;
-	}
-
-	size_t bits_in_first_octet = 8 - (bytes + 1);
-	size_t first_octet_mask = 0;
-	for (size_t i = 0; i != bits_in_first_octet; ++i)
-	{
-		first_octet_mask |= (1 << i);
-	}
-	if (bytes == 1)
-	{
-		first_octet_mask = 0x7F;
-	}
-	first_octet &= first_octet_mask;
-
-	target |= (first_octet << shift);
-
-//	std::cout << "\n\t\t\tDEC: " << std::dec << target << "\tHEX: " << std::hex << target << "\tBIN: " << std::bitset<16>(target) << std::endl;
-
-	++target;
-
-	letter.clear();
-
-	if (target <= 0x7F)
-	{
-		letter.push_back(target);
-	}
-	else if (target <= 0x7FF)
-	{
-		size_t first = (0xC0 | (target >> 6));
-		size_t second = (0x80 | (target & 0x3F));
-		letter.push_back(first);
-		letter.push_back(second);
-	}
-	else
-	{
-		throw std::runtime_error("3+ byte UTF-8 letters are not yet supported");
-	}
-
-	return letter;
-}
-*/
 
 void simple_tests::test_letter_related_features()
 {
@@ -924,4 +858,81 @@ void simple_tests::test_one_line_parser()
 		std::cout << '\t' << i->get_word() << '\n';
 	}
 	std::cout << std::endl;
+}
+
+void simple_tests::test_serialization()
+{
+	std::cout << "\nTesting serialization of dictionary\n";
+
+	auto generalized = [] (dictionary_creator::Language language,
+				dictionary_creator::utf8_string langname,
+				std::vector<dictionary_creator::utf8_string> words_requested)
+	{
+		dictionary_creator::DictionaryManager dictionary_object(language);
+		dictionary_object.rename(dictionary_creator::utf8_string{ "Testing serialization for " } + langname + " dictionary");
+
+		for (auto i: words_requested)
+		{
+			dictionary_object.lookup_or_add_word(i);
+		}
+
+		auto words = dictionary_object.get_undefined();
+		for (auto i: words)
+		{
+			std::cout << "\tdefining \'" << i->get_word() << "\'...";
+			dictionary_object.define(i);
+			std::cout << (i->is_defined() ? " done" : " couldn't be done") << std::endl;
+		}
+		if (auto p = dictionary_object.lookup_or_add_word(words_requested.back()); p)
+		{
+			p->increment_counter();
+		}
+
+		dictionary_object.save_dictionary();
+		std::cout << "Saved \"" << dictionary_object.get_name() << "\" dictionary\n";
+
+		auto available = dictionary_creator::available_dictionaries();
+		std::cout << "Choose a dictionary to load:\n";
+		size_t choice = 0;
+		for (size_t i = 0; i != available.size(); ++i)
+		{
+			std::cout << '\t' << i << ") " << available[i].human_readable << '\n';
+		}
+		std::cin >> choice;
+
+		std::cout << "Loading \'" << available[choice].human_readable << "\' dictionary\n";
+
+		auto loaded = dictionary_creator::load_dictionary(available[choice].full);
+
+		std::cout << "Loaded object type is " << typeid(loaded).name() << " and has name " << loaded.get_name() << std::endl;
+		auto loaded_undefined = loaded.get_undefined();
+		std::cout << "It has " << loaded_undefined.size() << " undefined words\n";
+
+		auto top_frequent = loaded.get_subset(dictionary_creator::ComparisonType::MostFrequent, 8);
+		std::cout << top_frequent.size() << " most frequent words:\n";
+		for (auto i: top_frequent)
+		{
+			std::cout << '\t' << i->get_word() << "\t[" << i->get_counter() << "]\n";
+			for (auto j: i->get_definitions())
+			{
+				std::cout << '\t' << j.first << ":\n";
+				size_t k = 0;
+				for (auto l: j.second)
+				{
+					std::cout << "\t\t" << ++k << ") " << l << "\n";
+				}
+			}
+		}
+	};
+
+	generalized(dictionary_creator::Language::English, "english", { "crazy", "crab" });
+	generalized(dictionary_creator::Language::Russian, "russian", { u8"волшебный", u8"дирижабль", u8"подземелья" });
+	std::cout << "\nThe end." << std::endl;
+}
+
+int main(int argc, char **argv)
+{
+	simple_tests::tests("Dictionary creator and its' features");
+
+	return 0;
 }

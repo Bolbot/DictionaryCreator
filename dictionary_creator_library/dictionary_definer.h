@@ -5,12 +5,14 @@
 #include "dictionary_types.h"
 #include "dictionary_language.h"
 
+#include <sstream>
+
 #if __has_include(<nlohmann/json.hpp>)
 
 #include <nlohmann/json.hpp>
 
 template <typename InputType>
-auto parse_json(InputType input)
+auto parse_json(InputType input) noexcept
 {
 	try
 	{
@@ -79,6 +81,8 @@ auto parse_json(InputType input)
 
 namespace dictionary_creator
 {
+	std::string percent_encode(utf8_string string);
+
 	definitions_t define_word(utf8_string word, Language language);
 }
 

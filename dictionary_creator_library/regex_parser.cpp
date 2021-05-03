@@ -15,7 +15,6 @@ pcre_parser::RegexParser::RegexParser(const char *pattern)
 			<< "\n(" << error << ")";
 			throw std::runtime_error(error_message.str());
 	}
-	//std::cout << "RegexParser\t\tpattern \"" << pattern << "\"" << std::endl;
 }
 
 int pcre_parser::RegexParser::process_pcre_exec(const std::string &source, int start_offset, std::vector<int> &outputs) const

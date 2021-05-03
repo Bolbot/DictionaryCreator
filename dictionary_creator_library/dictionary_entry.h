@@ -7,9 +7,6 @@
 
 namespace dictionary_creator
 {
-	// every member function is declared const because std::set.find returns const iterators
-	// if there is any wiser solution not involving indirection, it should be taken into consideration
-
 	class Entry
 	{
 	public:
@@ -43,8 +40,6 @@ namespace dictionary_creator
 			arch & defined;
 		}
 	};
-
-	bool operator<(const Entry &a, const Entry &b);
 }
 
 #endif

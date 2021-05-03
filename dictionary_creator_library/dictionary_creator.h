@@ -11,6 +11,7 @@
 #include <utility>
 #include <fstream>
 #include <algorithm>
+#include <memory>
 
 #include "regex_parser.h"
 #include "dictionary.h"
@@ -23,19 +24,19 @@ namespace dictionary_creator
 	public:
 		DictionaryCreator(Language language);
 
-		void add_input(std::ifstream &&input_stream);
+		void add_input(std::unique_ptr<std::istream> &&uptr_to_stream);
 
 		Dictionary parse_to_dictionary();
 
 		Dictionary parse_line(utf8_string line) const;
 
 	private:
-		Dictionary parse_one_file(std::ifstream &file_input);
+		Dictionary parse_one_file(std::istream &file_input);
 
 		void remove_crlf(utf8_string &string) const;
 
 		Language language;
-		std::vector<std::ifstream> input_files;
+		std::vector<std::unique_ptr<std::istream>> input_files;
 
 		size_t minimal_substantial_word_length;
 		utf8_string terminating_characters;

@@ -4,7 +4,6 @@
 #define USING_PCRE_FOR_REGEX_PARSING 1
 
 #if __has_include(<pcre.h>) && USING_PCRE_FOR_REGEX_PARSING
-//#define PCRE_STATIC
 #include <pcre.h>
 #define __PCRE_IS_AVALIABLE__
 #endif
@@ -15,8 +14,6 @@
 #include <vector>
 #include <sstream>
 #include <exception>
-
-#include <iostream>		// FOR DEBUG
 
 #ifndef __PCRE_IS_AVALIABLE__
 static_assert(false, "PCRE_IN_NOT_AVALIABLE");

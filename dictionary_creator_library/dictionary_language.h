@@ -21,6 +21,7 @@ namespace dictionary_creator
 {
 	enum class Language : size_t
 	{
+		Uninitialized = 0,
 		English = 1, French = 2, Russian = 3, German = 4
 	};
 
@@ -39,31 +40,20 @@ namespace dictionary_creator
 
 	inline letter_type first_letter(const utf8_string &word, Language language)
 	{
-		letter_type first_letter;
+		letter_type first_letter{ word.front() };
 
-		switch (language)
+		if (language != Language::English)
 		{
-		case Language::English:
-			first_letter = word.front();
-			break;
-		case Language::French:
-		case Language::Russian:
-		case Language::German:
-		default:
+			for (size_t i = 1; i != word.size(); ++i)
 			{
-				first_letter = word.front();
-				for (size_t i = 1; i != word.size(); ++i)
+				if ((word[i] & 0xC0) == 0x80)
 				{
-					if ((word[i] & 0xC0) == 0x80)
-					{
-						first_letter.push_back(word[i]);
-					}
-					else
-					{
-						break;
-					}
+					first_letter.push_back(word[i]);
 				}
-				break;
+				else
+				{
+					break;
+				}
 			}
 		}
 
@@ -75,8 +65,9 @@ namespace dictionary_creator
 		switch (language)
 		{
 		case Language::English:
+			{
 				return letter_type{ std::toupper(letter.front(), std::locale::classic()) };
-			break;
+			}
 		case Language::French:
 			{
 				if (letter.size() > 2)
@@ -206,11 +197,11 @@ namespace dictionary_creator
 
 	const std::vector<utf8_string> uppercase_letters
 	{
-		u8"", u8"A-Z", u8"A-ZÀÂÆÇÈÉÊËÏÎÔŒÙŸ", u8"АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ", u8"A-ZÄÖÜ"
+		u8"", u8"A-Z", u8"A-ZÀÂÆÇÈÉÊËÏÎÔŒÙÛŸ", u8"АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ", u8"A-ZÄÖÜẞ"
 	};
 	const std::vector<utf8_string> lowercase_letters
 	{
-		u8"", u8"a-z", u8"a-zàâéèêëïîôùûçœæ", u8"абвгдеёжзийклмнопрстуфхцчшщъыьэюя", u8"a-zäöüß"
+		u8"", u8"a-z", u8"a-zàâæçèéêëïîôœùûÿ", u8"абвгдеёжзийклмнопрстуфхцчшщъыьэюя", u8"a-zäöüß"
 	};
 }
 

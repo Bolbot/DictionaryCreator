@@ -1,182 +1,56 @@
 ﻿#include <typeinfo>
 #include <chrono>
-#include <iostream>
 #include <locale>
 
-#include "config.h"
-#if WINDOWS_H_IS_AVAILABLE && IO_H_IS_AVAILABLE
-#include <io.h>
-#include <Windows.h>
-
-bool UTF8_awareness_for_windows_console = [] () { return SetConsoleOutputCP(CP_UTF8) && SetConsoleCP(CP_UTF8); }();
-
-auto crossplatform_getline = [] (std::istream &input, std::string &dest) -> std::istream &
-{
-	constexpr size_t WBUFFER_SIZE = 8192;
-	constexpr size_t CBUFFER_SIZE = WBUFFER_SIZE * 3 + 1;
-
-	wchar_t wbuffer[WBUFFER_SIZE] { 0 };
-	char charbuffer[CBUFFER_SIZE] { 0 };
-
-	HANDLE input_handle = GetStdHandle(STD_INPUT_HANDLE);
-	if (input_handle == nullptr || input_handle == INVALID_HANDLE_VALUE)
-	{
-		throw std::runtime_error("Failed to acquire input handle in MS Windows");
-	}
-
-	DWORD read = 0;
-
-	if (ReadConsole(input_handle, wbuffer, WBUFFER_SIZE, &read, nullptr) == 0)
-	{
-		throw std::runtime_error("Failed to read from MS Windows console");
-	}
-
-	auto converted_size = WideCharToMultiByte(CP_UTF8, 0, wbuffer, read, charbuffer, CBUFFER_SIZE, nullptr, nullptr);
-
-	std::string result(charbuffer, converted_size);
-
-	while (!result.empty() && (result.back() == '\r' || result.back() == '\n'))
-	{
-		result.pop_back();
-	}
-
-	dest = result;
-
-	return input;
-};
-
-std::wstring platform_dependent_encoding(std::string source)
-{
-	std::wstring result(source.size(), wchar_t{});
-
-	MultiByteToWideChar(CP_UTF8, 0, source.data(), source.size(), result.data(), result.size());
-
-	return result;
-}
-
-#else
-
-auto crossplatform_getline = [] (std::istream &input, std::string &dest) -> std::istream &
-{
-	return std::getline(input, dest);
-};
-
-std::string platform_dependent_encoding(std::string source)
-{
-	return source;
-}
-
-#endif
-
-#include "simple_tests.h"
-#include "huge_test.h"
 #include "dictionary_manager.h"
+#include "filesystem_features.h"
+#include "config.h"
 
-// DO NOT!!! Don't test web lookup on huge files because this leads to 403 error and abortion of application
-// TO-DO:	check HTTP status before procceeding with any presumable response content
-//		provide error messages in case of unsuccessfull response status upon lookup attempts	DONE
+// GoogleAPI limits TODO:	develop a strategy for getting around the Google limit
+// 				problem: starting from some substantial amount of requests google gets exausted
+// 				as a result HTTP 403 response is returned regardless of any further requests
+// 				solution may involve having a localy stored json objects for each url
+// 				but how to store them all in a way alowing to access them quick? that is the question
 //
+// Refinement TO-DO:	make load_dictionary return the DictionaryManager objects with names corresponding to requested ones DONE
+// 			test it and make sure it works DONE
 //
-// Windows TO-DO:	Teach Windows to open files with spaces (\screening suffices) and unicode characters in path DONE
-// Windows-2 TO-DO:	Reimplement former feature via UTF-16 encoded wstrings	DONE
+// Connections hotfix TO-DO:	look into the unicode containing URL issue, find a solution to request UTF letters				DONE
+// 				implement it either in dictionary_definer.cpp define_word() or in connections.cpp in constructor		DONE
+// 				if it takes adding third party libraries, link them in cmake and run up some separate simple_tests for them	NOPE
+// 				update test_connections to test against words 'naïve', 'scheiße', and 'дирижабль'				DONE
 //
-// Architecture TO-DO:	ensure inner consistency of classes DONE
-// 				complete inner reimplementation debt TO-DOs DONE
-// 				move type aliases to separate dictionary_types.h header DONE
-// 			rewrite stored types from variable Entries to shared_ptr<Entry>	DONE
-// 				reimplement all functions dealing with Entry		DONE
-// 				make Entry type polymorphic (add virtual destructor)	DONE
-// 				provide custom sort with one more possible ComparisonType::Custom			DONE
-// 				create one more custom sort overload accepting template Comp if ::Custom		DONE
-// 				wrap that custom in another lambda dealing with results of dynamic_cast<> failure	DONE
-// 			find every place that is creating an Entry and make it template, accepting CustomEntry type with Entry as default	DONE
-//			check if necessity in const remains after turn to pointer storing, get rid of it if possible				DONE
+// Console interface TO-DO:	separate windows-related and unix-related checks
+// 				implement a consistent working and uniform scenario for opening and saving files via main
+// 					either
+// 						use std::filesystem to deal with platform-related issues	// total NO - useless garbage
+// 					or
+// 						provide a set of platform-aware headers dealing with filenames and opening files	DONE
+//					revise the interfaces providing an overload for std::wstring file names and use those with Windows DONE
+// 				test it using different languages in file names and expected contents (ru/ru, en/en, en/ru, ru/en, jap/ru, ru/fr) DONE
 //
-// TDD Routine TO-DO:	write tests for the interface features DONE
-//			provide all the interface features developed DONE
-//			when all beforementioned works consider interface development DONE
-//			write a huge complex test involving all of those features DONE
-//			check its work on two languages: english and russian DONE
-//
-// Considerable optimization TO-DO:	provide DefaultEntrySorter with transparent comparator overloads accepting string_view
-// 					use that for the lookup features
-// 					get a rule-of-thumb measurements of the effectiveness impact using HUGE TEST	DONE: 1/6 faster now
-//
-// Important feature TO-DO:		provide user-supplied string parsing to the dictionary	DONE
-//
-// Serialization TODO:			rewrite insides using the boost data structure includes		DONE
-// 					add template serialize functions				DONE
-// 					link boost where necessary					DONE
-//
-// 					add to the DictionaryManager following functions:
-//
-// 					.rename(string)			to name the dictionary, stored in member string			|
-// 					.get_name() const		returns the dictionary name					| DONE
-// 					.save_dictionary() const	saves dictionary under current name (default one available)	|
-//
-// 					add the namespace-scoped function that accepts the file name and returns DictionaryManager object
-// 					DictionaryManager load_dictionary(file name)		DONE
-// 					DictionaryManager load_dictionary(ifstream)		DONE
-// 					in case of failure throws runtime errors		DONE
-//
-// 					for further user convenience provide a function returning list of all possible dictionaries	|
-// 					std::vector<std::string> available_dictionaries()						|
-// 					consider returning a pair of load_dictionary-required filename and user-readable filename	|
-// 					possible type is std::pair<string, string_view> or custom struct instead of the std::pair	| DONE
-//
-// 					design some tests to check the correctness of the abovementioned		DONE
-// 					write tests as parts of huge_test						DONE
-// 					check the correctness using both english and russian version
-//
-// Refinement TODO:	make load_dictionary return the DictionaryManager objects with names corresponding to requested ones
+// Completeness TODO:	provide some missing features
+// 			list them below:
+// 				special exporting options for export_top member function (encounters if sorted by frequency)
 //
 // Premature optimization TODO: 	consider using custom allocation for storing dictionary
 // 					deduce required space upon dictionary loading
 // 					how to resize when more space is needed during the work?
 // 					what if there is not enough allocated space?
 //
-// Most distant TODO: implement task-based or thread-pool-based concurrent beforehand web-api processing of non-capitalized words
-// 			DEBATABLE NECESSITY
+// Test convenience TO-DO:	revise testing approach DONE
+// 				redesign inner structure of the project to build a dictionary_creator lib apart from tests and executables DONE
+// 				engage some unit test framework and provide regression testing in separate subdirectories and executables  DONE
+// 				mark existing huge_tests and simple_test as obsolete and move there	DONE
 //
-// Serious TODO: provide a GUI
-// First of all TODO: formulate GUI requirements and features
+// Most distant TODO: implement task-based or thread-pool-based concurrent beforehand web-api processing of dictionary words
+// 			find a bottleneck in processing
+// 			see how it can be dealt with except for multithreading
+// 			develop a divide et impera processing strategy when everything else is applied
 //
-// TODO:	refine GUI requirements
-// 		decide where to place necessary language setting and when to ask user for it if even ask
-// 		simplify GUI from user perspective when it's refined, simplify as much as ever possible
-// 
-//	GUI requirements
-// GUI contains list of text files to be analyzed,
-// 		option to add new files via windows explorer (or drag-n-drop to the list section also)
-// 		settings section that has the default settings (which one?) and possibility to open advanced settings
-// 			advanced settings on request that provide definition style, exporting separate files with words sorted etc.
-// 		filled by default field of output dictionary file name, user can edit it or leave as it is
-// 		if analyzed files belong to different location, gui request user for destination for results
-//
-// 		Refined version
-// 		Menu bar:
-// 			File:
-// 				Add --- add file to be parsed
-// 				Clear all --- remove all currently pending files
-// 				-----------------
-// 				Export dictionary --- export parsing results with default options
-// 				Export top --- export partially, custom sorted, ask to specify how and how many
-// 				Export proper nouns --- export proper nouns
-// 				-----------------
-// 				Quit --- close the application, ask for confirm if any unprocessed files left
-// 			Process:
-// 				Process all --- parse all pending files
-// 				----------------
-// 				Display top --- display topmost custom sorted words in separate window
-// 				Display proper nouns --- display all the proper nouns in separate window
-//			Settings:
-//				Definitions --- choose between different definitions options from none to all
-//				File info --- choose between fullpath, only names, or no information about the source files
-//
-//		List view:
-//			Table or list of pending files to be processed
-//			(perhaps) already processed files as greyed out lines
-//
+// UI/UX TODO:	Design GUI considering the most plausible use scenario, make it handy for one or two simple things
+// 		Make it elsewhere and try to use interim versions while reasoning about the design
+
 
 template <typename Lambda, typename TimeUnit = std::chrono::milliseconds>
 auto execution_time(Lambda wrapped_task)
@@ -188,30 +62,98 @@ auto execution_time(Lambda wrapped_task)
 	return std::chrono::duration_cast<TimeUnit>(after - before);
 }
 
+auto get_input_file_path()
+{
+	std::cout << "Specify input file:\n";
+
+	while (true)
+	{
+		auto file_path = read_user_input_line();
+
+		remove_enclosing_quotes(file_path);
+
+		if (valid_file_path(file_path) == false)
+		{
+			std::cout << "Invalid file path. Try another.\n";
+			continue;
+		}
+
+		if (file_already_exists(file_path) == false)
+		{
+			std::cout << "File does not exist. Try another.\n";
+			continue;
+		}
+
+		if (regular_file(file_path) == false)
+		{
+			std::cout << "Not a file. Try another.\n";
+			continue;
+		}
+		
+		return file_path;
+	}
+}
+
+auto get_output_file_path()
+{
+	std::cout << "Specify output file (.txt if no other extension specified):\n";
+
+	while (true)
+	{
+		auto file_path = read_user_input_line();
+
+		remove_enclosing_quotes(file_path);
+
+		if (valid_file_path(file_path) == false)
+		{
+			std::cout << "Invalid file path. Try another.\n";
+			continue;
+		}
+
+		fix_missing_extension(file_path);
+
+		if (file_already_exists(file_path))
+		{
+			std::cout << "File already exists. Lose it's previous contents and write there anyway? ([Y]es / [n]o)\n> ";
+
+			char choice = char{};
+			std::cin >> choice;
+			std::cin.ignore(std::cin.rdbuf()->in_avail(), '\n');
+
+			if (choice != 'Y')
+			{
+				std::cout << "Specify another file.\n";
+				continue;
+			}
+		}
+
+		if (std::ofstream(file_path).good() && regular_file(file_path) == false)
+		{
+			std::cout << "Not a regular file. Try another.\n";
+			continue;
+		}
+
+		return file_path;
+	}
+}
+
 void manage_dictionary()
 {
-	std::cout << "Write full path of file to add it to dictionary\n> " << std::flush;
+	auto input_file_path = get_input_file_path();
+		
+	dictionary_creator::DictionaryManager dm(dictionary_creator::Language::Russian);
 
-	std::string path;
-	crossplatform_getline(std::cin, path);
+	dm.add_input_file(input_file_path);
+	dm.lookup_or_add_word(u8"космос");
 
-	std::ifstream file(platform_dependent_encoding(path));
-	if (file.good())
+	try
 	{
-		std::cout << "Valid file, trying to process...\n";
+		dm.parse_all_pending();
 	}
-	else
+	catch (std::exception &e)
 	{
-		std::cout << "Can't process this file, seems invalid\n";
-		return;
+		std::cerr << "THROWN: " << e.what() << '\n';
 	}
-
-	dictionary_creator::DictionaryManager dm(dictionary_creator::Language::English);
-
-	dm.add_input_file(std::move(file));
-	dm.lookup_or_add_word(u8"Antidisestablishmentarianism");
-
-	dm.parse_all_pending();
 
 	auto longest_7 = dm.get_subset(dictionary_creator::ComparisonType::Longest, 7);
 	if (longest_7.size() == 7)
@@ -225,57 +167,34 @@ void manage_dictionary()
 	}
 	dm.define(longest_7);
 
-	std::cout << "Write the output file name\n> ";
-	std::string output_file;
-	while (output_file.empty())
-	{
-		std::getline(std::cin, output_file);
-	}
+	auto output_file_path = get_output_file_path();
 
-	if (std::ifstream(output_file).good())
-	{
-		std::cout << "This is an existing file! Are you sure you want to discard it's content and write there? (Y/n)\n";
-		if (std::cin.get() != 'Y')
-		{
-			std::cout << "Then restart the program, sorry." << std::endl;
-			return;
-		}
-	}
+	std::ofstream output_stream(output_file_path);
 
-	std::ofstream output(output_file, std::ios_base::out | std::ios_base::trunc);
-	dm.set_output(output);
+	dm.set_output(output_stream);
 	dm.export_dictionary();
 
-	std::cout << "Exporting done. See the contents of " << output_file << ".\nTHE END" << std::endl;
+	std::cout << "Exporting done" << std::endl;
 }
+
 
 int main (int argc, char **argv)
 {
-	auto program_title = u8"DictionaryCreator 0.8.3";
-	std::cout << program_title << std::endl;
+	std::cout << PROJECT_NAME_GENERAL << ' ' << PROJECT_VERSION_MAJOR << '.'
+		<< PROJECT_VERSION_MINOR << '.'	<< PROJECT_VERSION_PATCH << '\n';
 #ifdef _WIN32
 	if (!UTF8_awareness_for_windows_console)
 	{
 		std::cout << "Warning: Windows console output isn't UTF-8 aware!" << std::endl;
 	}
 #endif
+	if (argc == 2 && strcmp(argv[1], "TESTRUN") == 0)
+	{
+		std::cout << "Test run. C++ version is " << __cplusplus << " (if it's UNIX)\n";
+		return 0;
+	}
 
-	if (argc == 2)
-	{
-		if (!strncmp(argv[1], "TEST", 4))
-		{
-			simple_tests::tests(program_title);
-		}
-		
-		if (!strncmp(argv[1], "HUGETEST", 8))
-		{
-			huge_test::run_all_tests();
-		}
-	}
-	else
-	{
-		manage_dictionary();
-	}
+	manage_dictionary();
 
 	return 0;
 }

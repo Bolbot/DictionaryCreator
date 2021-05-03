@@ -90,21 +90,6 @@ namespace dictionary_creator
 
 	using subset_t = std::vector<std::shared_ptr<Entry>>;
 
-	/*							// was it for debug purposes?
-	template <typename T>
-	void print_types(T &&t)
-	{
-		std::cout << typeid(t).name();
-	}
-
-	template <typename T, typename ...Args>
-	void print_types(T &&t, Args &&... args)
-	{
-		std::cout << typeid(t).name() << ' ';
-		print_types(std::forward<Args>(args)...);
-	}
-	*/
-
 	class Dictionary
 	{
 	public:
@@ -145,6 +130,7 @@ namespace dictionary_creator
 		bool add_word(utf8_string word);
 		bool remove_word(utf8_string word);
 		void add_proper_noun(utf8_string proper_noun);
+		void remove_proper_nouns();
 
 		std::shared_ptr<Entry> lookup(utf8_string word) const;
 		size_t total_words() const;
@@ -211,7 +197,6 @@ namespace dictionary_creator
 
 		Language get_language() const noexcept;
 	private:
-		void remove_proper_nouns();
 
 		Language language;
 		std::map<letter_type, std::set<std::shared_ptr<Entry>, DefaultEntrySorter>> dictionary;
@@ -276,7 +261,6 @@ namespace dictionary_creator
 	class DictionaryExporter
 	{
 	public:
-		explicit DictionaryExporter(std::ostream &output_stream = std::cout, utf8_string undefined_warning = u8"-----");
 		explicit DictionaryExporter(std::ostream *output_stream = nullptr, utf8_string undefined_warning = u8"-----");
 
 		std::ostream &export_dictionary(const Dictionary &object, ExportOptions export_options = default_export_options);

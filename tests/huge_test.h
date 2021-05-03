@@ -10,6 +10,7 @@
 
 namespace huge_test
 {
+	/*
 	void dm_creation();
 
 	void special_cases();
@@ -29,6 +30,7 @@ namespace huge_test
 
 		return std::chrono::duration_cast<TimeUnit>(after - before);
 	}
+	*/
 }
 
 #endif

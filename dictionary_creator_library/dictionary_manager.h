@@ -26,7 +26,6 @@ namespace dictionary_creator
 	class DictionaryManager;
 
 	DictionaryManager load_dictionary(utf8_string dictionary_filename);
-	DictionaryManager load_dictionary(std::ifstream &&dictionary_file);
 	std::vector<dictionary_filename> available_dictionaries();
 
 	class DictionaryManager
@@ -34,8 +33,13 @@ namespace dictionary_creator
 	public:
 		DictionaryManager(Language language);
 
-		void add_input_file(std::ifstream &&input_stream);
-		void add_input_file(std::string file_name);
+		template <typename CharType>
+		void add_input_file(std::basic_string<CharType> file_name)
+		{
+			std::ifstream stream(file_name);
+			add_input_file(std::move(stream));
+		}
+		void add_input_file(std::ifstream &&file_stream);
 		void parse_all_pending();
 		void parse_one_line(utf8_string line);
 
@@ -62,7 +66,7 @@ namespace dictionary_creator
 		std::shared_ptr<Entry> get_random_word() const;
 		subset_t get_random_words(size_t number) const;
 
-		std::shared_ptr<Entry> define(std::string word);
+		std::shared_ptr<Entry> define(utf8_string word);
 		std::shared_ptr<Entry> define(std::shared_ptr<Entry> word);
 		std::shared_ptr<Entry> define(const Entry &word);
 		const subset_t &define(const subset_t &entries);
@@ -77,7 +81,6 @@ namespace dictionary_creator
 		utf8_string get_name() const noexcept;
 		void save_dictionary() const;
 		friend DictionaryManager load_dictionary(utf8_string dictionary_filename);
-		friend DictionaryManager load_dictionary(std::ifstream &&dictionary_file);
 		friend std::vector<dictionary_filename> available_dictionaries();
 
 	private:

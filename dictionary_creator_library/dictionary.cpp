@@ -25,7 +25,7 @@ dictionary_creator::Dictionary &dictionary_creator::Dictionary::merge(const dict
 {
 	if (this->language != other.language)
 	{
-		throw std::runtime_error("an attempt to merge language mismatching dictionaries");
+		throw dictionary_creator::dictionary_runtime_error("an attempt to merge language mismatching dictionaries");
 	}
 	
 	for (const auto &[letter, entries]: other.dictionary)
@@ -60,7 +60,7 @@ dictionary_creator::Dictionary &dictionary_creator::Dictionary::merge(dictionary
 {
 	if (language != other.language)
 	{
-		throw std::runtime_error("an attempt to merge language mismatching dictionaries");
+		throw dictionary_creator::dictionary_runtime_error("an attempt to merge language mismatching dictionaries");
 	}
 
 	for (auto &[letter, entries]: other.dictionary)
@@ -89,26 +89,33 @@ dictionary_creator::Dictionary &dictionary_creator::Dictionary::subtract(const d
 {
 	if (language != other.language)
 	{
-		throw std::runtime_error("an attempt to subtract language mismatching dictionaries");
+		throw dictionary_creator::dictionary_runtime_error("an attempt to subtract language mismatching dictionaries");
 	}
 
-	for (const auto &[letter, entries]: other.dictionary)
+	if (&other != this)
 	{
-		for (const auto &entry: entries)
+		for (const auto &[letter, entries]: other.dictionary)
 		{
-			dictionary[letter].erase(entry);
+			for (const auto &entry: entries)
+			{
+				dictionary[letter].erase(entry);
+			}
 		}
-	}
 
-	for (const auto &[letter, entries]: other.proper_nouns)
+		for (const auto &[letter, entries]: other.proper_nouns)
+		{
+			for (const auto &entry: entries)
+			{
+				proper_nouns[letter].insert(entry);
+			}
+		}
+
+		remove_proper_nouns();
+	}
+	else
 	{
-		for (const auto &entry: entries)
-		{
-			proper_nouns[letter].insert(entry);
-		}
+		dictionary.clear();
 	}
-
-	remove_proper_nouns();
 
 	return *this;
 }
@@ -117,23 +124,30 @@ dictionary_creator::Dictionary &dictionary_creator::Dictionary::subtract(diction
 {
 	if (language != other.language)
 	{
-		throw std::runtime_error("an attempt to subtract language mismatching dictionaries");
+		throw dictionary_creator::dictionary_runtime_error("an attempt to subtract language mismatching dictionaries");
 	}
 
-	for (auto &[letter, entries]: other.dictionary)
+	if (&other != this)
 	{
-		for (const auto &entry: entries)
+		for (auto &[letter, entries]: other.dictionary)
 		{
-			dictionary[letter].erase(entry);
+			for (const auto &entry: entries)
+			{
+				dictionary[letter].erase(entry);
+			}
 		}
-	}
 
-	for (auto &[letter, entries]: other.proper_nouns)
+		for (auto &[letter, entries]: other.proper_nouns)
+		{
+			proper_nouns[letter].merge(std::move(entries));
+		}
+
+		remove_proper_nouns();
+	}
+	else
 	{
-		proper_nouns[letter].merge(std::move(entries));
+		dictionary.clear();
 	}
-
-	remove_proper_nouns();
 
 	return *this;
 }
@@ -142,7 +156,7 @@ dictionary_creator::Dictionary dictionary_creator::Dictionary::intersection_with
 {
 	if (language != other.language)
 	{
-		throw std::runtime_error("an attempt to find intersection of lanugage mismatching dictionaries");
+		throw dictionary_creator::dictionary_runtime_error("an attempt to find intersection of lanugage mismatching dictionaries");
 	}
 
 	dictionary_creator::Dictionary result(language);
@@ -316,7 +330,7 @@ std::shared_ptr<dictionary_creator::Entry> dictionary_creator::Dictionary::get_r
 {
 	if (dictionary.empty())
 	{
-		throw std::runtime_error("attempt to get random word from an empty dictionary");
+		throw dictionary_creator::dictionary_runtime_error("attempt to get random word from an empty dictionary");
 	}
 
 	auto letter = dictionary.begin();
@@ -448,18 +462,14 @@ dictionary_creator::Dictionary dictionary_creator::operator*(const dictionary_cr
 	return left.intersection_with(right);
 }
 
-dictionary_creator::DictionaryExporter::DictionaryExporter(std::ostream &output_stream, utf8_string undefined_warning)
-	: output_stream{ &output_stream }, undefined_warning{ undefined_warning }
+dictionary_creator::DictionaryExporter::DictionaryExporter(std::ostream *output_stream, utf8_string undefined_warning)
+	: output_stream{ output_stream }, undefined_warning{ undefined_warning }
 {
-	if (!output_stream.good())
+	if (output_stream == nullptr)
 	{
-		throw std::runtime_error("output stream is not in good condition");
+		throw dictionary_creator::dictionary_runtime_error("DictionaryExporter hasn't been properly initialized");
 	}
 }
-
-dictionary_creator::DictionaryExporter::DictionaryExporter(std::ostream *output_stream, utf8_string undefined_warning)
-	: dictionary_creator::DictionaryExporter{ output_stream ? *output_stream : std::cerr, undefined_warning }
-{}
 
 std::ostream &dictionary_creator::DictionaryExporter::export_dictionary(const dictionary_creator::Dictionary &object,
 	dictionary_creator::ExportOptions options)
