@@ -3,7 +3,6 @@
 
 #include "dictionary.h"
 #include "dictionary_creator.h"
-#include "dictionary_definer.h"
 
 #include <filesystem>
 #include <boost/archive/text_oarchive.hpp>
@@ -14,6 +13,8 @@
 // 	- Dictionary class to store the dictionary itself
 // 	- DictionaryCreator class responsible for parsing given UTF-8 aware streams according to language rules
 // 	- DictionaryExporter class to export given dictionary to the user provided streams or ordered files
+
+// TODO: fix quite unpleasant match of struct name and argument name: dictionary_filename, same applies to dictionary_manager.cpp
 
 namespace dictionary_creator
 {

@@ -32,7 +32,7 @@ namespace dictionary_creator
 		friend class boost::serialization::access;
 
 		template <typename A>
-		void serialize(A &arch, const unsigned int version)
+		void serialize(A &arch,[[ maybe_unused ]] const unsigned int version)
 		{
 			arch & word;
 			arch & definitions;

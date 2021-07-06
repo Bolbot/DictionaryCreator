@@ -30,6 +30,8 @@ namespace dictionary_creator
 
 		Dictionary parse_line(utf8_string line) const;
 
+		// TODO: declare default move constructor if necessary
+
 	private:
 		Dictionary parse_one_file(std::istream &file_input);
 

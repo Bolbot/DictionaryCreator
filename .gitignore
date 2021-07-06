@@ -4,7 +4,6 @@ bUILD/
 BUILD/
 *_build/
 benchmark_results/
-config.h
 Saved dictionaries/
 tests/inputs/
 tests/outputs/

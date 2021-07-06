@@ -173,7 +173,7 @@ dictionary_creator::Dictionary dictionary_creator::Dictionary::intersection_with
 				}
 			}
 		}
-		catch (std::out_of_range &no_such_letter_which_is_ok) { }
+		catch ([[ maybe_unused ]] std::out_of_range &no_such_letter_which_is_ok) { }
 	}
 
 	result.proper_nouns = other.proper_nouns;
@@ -233,7 +233,7 @@ std::shared_ptr<dictionary_creator::Entry> dictionary_creator::Dictionary::looku
 	{
 		first_letter = get_first_letter(word);
 	}
-	catch (std::exception& possible_broken_UTF8_letter)
+	catch ([[ maybe_unused ]] std::exception& possible_broken_UTF8_letter)
 	{
 		return nullptr;
 	}
@@ -273,7 +273,7 @@ dictionary_creator::subset_t dictionary_creator::Dictionary::get_top(dictionary_
 
 	for (const auto &[letter, words]: dictionary)
 	{
-		for (const auto w: words)
+		for (const auto &w: words)
 		{
 			entries.push_back(w);
 		}

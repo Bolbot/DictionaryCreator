@@ -1,15 +1,15 @@
-#ifndef PLATFORM_WINDOWS_H
-#define PLATFORM_WINDOWS_H
+#include "fs_manager.h"
 
+#include <fstream>
+#include <iostream>
+#include <string>
 #include <io.h>
 #include <Windows.h>
 #include <fcntl.h>
-#include <string>
-#include <iostream>
 
-bool UTF8_awareness_for_windows_console = [] () { return SetConsoleOutputCP(CP_UTF8) && SetConsoleCP(CP_UTF8); }();
+bool UTF8_aware_console = [] () { return SetConsoleOutputCP(CP_UTF8) && SetConsoleCP(CP_UTF8); }();
 
-constexpr wchar_t forbidden_file_path_characters[] = L"<>\"?*|";
+constexpr wchar_t forbidden_file_path_characters[7] = L"<>\"?*|";
 
 std::wstring read_user_input_line()
 {
@@ -29,7 +29,7 @@ std::wstring read_user_input_line()
 
 		DWORD read = 0;
 
-		if (ReadConsole(input_handle, result.data(), result.size(), &read, nullptr) == 0)
+		if (ReadConsole(input_handle, result.data(), static_cast<DWORD>(result.size()), &read, nullptr) == 0)
 		{
 			throw std::runtime_error("Failed to read from MS Windows console");
 		}
@@ -92,4 +92,4 @@ void fix_missing_extension(std::wstring &path)
 	}
 }
 
-#endif
+

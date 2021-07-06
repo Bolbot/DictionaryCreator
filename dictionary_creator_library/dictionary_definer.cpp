@@ -1,4 +1,5 @@
 #include "dictionary_definer.h"
+#include "dictionary_definer_impl.h"
 
 std::string dictionary_creator::percent_encode(dictionary_creator::utf8_string string)
 {

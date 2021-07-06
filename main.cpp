@@ -1,9 +1,10 @@
 ﻿#include <typeinfo>
 #include <chrono>
 #include <locale>
+#include <cstring>
 
 #include "dictionary_manager.h"
-#include "filesystem_features.h"
+#include "fs_manager.h"
 #include "config.h"
 
 // GoogleAPI limits TODO:	develop a strategy for getting around the Google limit
@@ -11,6 +12,25 @@
 // 				as a result HTTP 403 response is returned regardless of any further requests
 // 				solution may involve having a localy stored json objects for each url
 // 				but how to store them all in a way alowing to access them quick? that is the question
+//
+// CMake overhaul TO-DO:		Declare platform-unaware API in this file - include fs_manager.h now	DONE
+// 				Move platform logic in CMakeLists.txt					DONE
+// 				Create subdirectories related to platforms				DONE
+// 				Rewrite main()								DONE
+// 				move freestanding FS functions from here to some class interface...	not class
+// 				...and separate implementations for OS					DONE
+//				revise nested header includes and move to source files all possible	DONE and even PIMPL
+//				compile and run to see it eventually works				DONE, both Win and Unix, both static and shared
+//
+// CMake improvements TO-DO:	Provide installation			DONE
+// 				Provide packaging			DONE
+// 				Provide testing				DONE
+// 				Provide CMake exporting			DONE
+//
+// PCRE fix TODO:		Find out the exact discrepancies in the PCRE parser behaviour
+// 				Put down some necessary steps to fix it
+// 				Fix it
+// 				
 //
 // Refinement TO-DO:	make load_dictionary return the DictionaryManager objects with names corresponding to requested ones DONE
 // 			test it and make sure it works DONE
@@ -29,9 +49,10 @@
 //					revise the interfaces providing an overload for std::wstring file names and use those with Windows DONE
 // 				test it using different languages in file names and expected contents (ru/ru, en/en, en/ru, ru/en, jap/ru, ru/fr) DONE
 //
-// Completeness TODO:	provide some missing features
+// Completeness TO-DO:	provide some missing features
 // 			list them below:
 // 				special exporting options for export_top member function (encounters if sorted by frequency)
+// 			CANCELLED since that is unnecessary
 //
 // Premature optimization TODO: 	consider using custom allocation for storing dictionary
 // 					deduce required space upon dictionary loading
@@ -62,81 +83,6 @@ auto execution_time(Lambda wrapped_task)
 	return std::chrono::duration_cast<TimeUnit>(after - before);
 }
 
-auto get_input_file_path()
-{
-	std::cout << "Specify input file:\n";
-
-	while (true)
-	{
-		auto file_path = read_user_input_line();
-
-		remove_enclosing_quotes(file_path);
-
-		if (valid_file_path(file_path) == false)
-		{
-			std::cout << "Invalid file path. Try another.\n";
-			continue;
-		}
-
-		if (file_already_exists(file_path) == false)
-		{
-			std::cout << "File does not exist. Try another.\n";
-			continue;
-		}
-
-		if (regular_file(file_path) == false)
-		{
-			std::cout << "Not a file. Try another.\n";
-			continue;
-		}
-		
-		return file_path;
-	}
-}
-
-auto get_output_file_path()
-{
-	std::cout << "Specify output file (.txt if no other extension specified):\n";
-
-	while (true)
-	{
-		auto file_path = read_user_input_line();
-
-		remove_enclosing_quotes(file_path);
-
-		if (valid_file_path(file_path) == false)
-		{
-			std::cout << "Invalid file path. Try another.\n";
-			continue;
-		}
-
-		fix_missing_extension(file_path);
-
-		if (file_already_exists(file_path))
-		{
-			std::cout << "File already exists. Lose it's previous contents and write there anyway? ([Y]es / [n]o)\n> ";
-
-			char choice = char{};
-			std::cin >> choice;
-			std::cin.ignore(std::cin.rdbuf()->in_avail(), '\n');
-
-			if (choice != 'Y')
-			{
-				std::cout << "Specify another file.\n";
-				continue;
-			}
-		}
-
-		if (std::ofstream(file_path).good() && regular_file(file_path) == false)
-		{
-			std::cout << "Not a regular file. Try another.\n";
-			continue;
-		}
-
-		return file_path;
-	}
-}
-
 void manage_dictionary()
 {
 	auto input_file_path = get_input_file_path();
@@ -144,7 +90,7 @@ void manage_dictionary()
 	dictionary_creator::DictionaryManager dm(dictionary_creator::Language::Russian);
 
 	dm.add_input_file(input_file_path);
-	dm.lookup_or_add_word(u8"космос");
+	dm.lookup_or_add_word(u8"антропологический");
 
 	try
 	{
@@ -155,17 +101,14 @@ void manage_dictionary()
 		std::cerr << "THROWN: " << e.what() << '\n';
 	}
 
-	auto longest_7 = dm.get_subset(dictionary_creator::ComparisonType::Longest, 7);
-	if (longest_7.size() == 7)
+	auto longest_20 = dm.get_subset(dictionary_creator::ComparisonType::Longest, 20);
+	std::cout << "Longest " << longest_20.size() << " words are:\n";
+	for (const auto &i : longest_20)
 	{
-		std::cout << "Longest 7 words are:\n";
-		for (const auto &i : longest_7)
-		{
-			std::cout << '\t' << i->get_word() << '\n';
-		}
-		std::cout << "Those are going to be defined.\n";
+		std::cout << '\t' << i->get_word() << '\n';
 	}
-	dm.define(longest_7);
+	std::cout << "Those are going to be defined.\n";
+	dm.define(longest_20);
 
 	auto output_file_path = get_output_file_path();
 
@@ -180,17 +123,15 @@ void manage_dictionary()
 
 int main (int argc, char **argv)
 {
-	std::cout << PROJECT_NAME_GENERAL << ' ' << PROJECT_VERSION_MAJOR << '.'
-		<< PROJECT_VERSION_MINOR << '.'	<< PROJECT_VERSION_PATCH << '\n';
-#ifdef _WIN32
-	if (!UTF8_awareness_for_windows_console)
+	std::cout << PROJECT_NAME << ' ' << PROJECT_VERSION << '\n';
+	if (UTF8_aware_console == false)
 	{
 		std::cout << "Warning: Windows console output isn't UTF-8 aware!" << std::endl;
 	}
-#endif
+
 	if (argc == 2 && strcmp(argv[1], "TESTRUN") == 0)
 	{
-		std::cout << "Test run. C++ version is " << __cplusplus << " (if it's UNIX)\n";
+		std::cout << "Test run. C++ version is " << __cplusplus << "\n";
 		return 0;
 	}
 

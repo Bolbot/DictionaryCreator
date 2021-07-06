@@ -1,5 +1,7 @@
 #include "dictionary_manager.h"
 
+#include "dictionary_definer.h"
+
 dictionary_creator::DictionaryManager::DictionaryManager(dictionary_creator::Language language) :
 	definer{ [language] (dictionary_creator::utf8_string word) { return define_word(std::move(word), language); } },
 	dictionary{ language },
@@ -247,7 +249,16 @@ dictionary_creator::DictionaryManager dictionary_creator::load_dictionary(dictio
 	dictionary_creator::DictionaryManager result(acquired_dictionary.get_language());
 	result.rename(std::move(acquired_name));
 	result.dictionary = std::move(acquired_dictionary);
+// TODO: fix this
+// some reasoning: since PIMPL was introduced in RegexParser it may've lost the default generated copy and move constructors and assignment
+//					restoring it's movable/copyable state may help
+//					otherwise problem is the default constructor, but it wasn't available before anyway
+//					got to inspect that problem
+	// Problem definetely is in malfunctioning of NRVO
+	// even without relying on NRVO following statement shoud leverage move constructor, not a copy constructor
+	// TODO: look up the same problem reports and solutions
 	return result;
+//	return dictionary_creator::DictionaryManager(acquired_dictionary.get_language());
 }
 
 std::vector<dictionary_creator::dictionary_filename> dictionary_creator::available_dictionaries()

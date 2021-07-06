@@ -1,13 +1,15 @@
-#ifndef PLATFORM_UNIX_H
-#define PLATFORM_UNIX_H
+#include "fs_manager.h"
 
+#include <fstream>
+#include <iostream>
+#include <string>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <string>
-#include <iostream>
 
-constexpr char forbidden_file_path_characters[] = "\0";
+bool UTF8_aware_console = true;
+
+constexpr char forbidden_file_path_characters[2] = "\0";
 
 std::string read_user_input_line()
 {
@@ -44,4 +46,4 @@ void fix_missing_extension(std::string &path)
 	}
 }
 
-#endif
+const bool cin_stdio_sync = [] { std::cin.sync_with_stdio(false); return false; }();
