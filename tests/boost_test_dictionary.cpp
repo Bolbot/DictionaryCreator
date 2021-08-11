@@ -411,9 +411,12 @@ BOOST_AUTO_TEST_SUITE(dictionary_alltogether)
 
 			BOOST_TEST_CHECK(exports_word(rus, u8"Екатерина") == true);
 
-			auto size_before_self_assignment = rus.total_words();
-			rus = std::move(rus);
-			BOOST_TEST_CHECK(rus.total_words() == size_before_self_assignment);
+			// no robustness against self move-assignement should've been intended actually
+			// see the rule of zero; therefore following failure is plausible and shouldn't be tested against
+			//
+			//auto size_before_self_assignment = rus.total_words();
+			//rus = std::move(rus);
+			//BOOST_TEST_CHECK(rus.total_words() == size_before_self_assignment);
 
 			BOOST_TEST_INFO("no previous state remains");
 			rus = eng;
