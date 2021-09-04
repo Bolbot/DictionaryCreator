@@ -199,8 +199,8 @@ namespace dictionary_creator
 	private:
 
 		Language language;
-		std::map<letter_type, std::set<std::shared_ptr<Entry>, DefaultEntrySorter>> dictionary;
-		std::map<letter_type, std::set<std::shared_ptr<Entry>, DefaultEntrySorter>> proper_nouns;
+		std::map<letter_type, std::set<std::shared_ptr<Entry>, DefaultEntrySorter>, string_comp> dictionary;
+		std::map<letter_type, std::set<std::shared_ptr<Entry>, DefaultEntrySorter>, string_comp> proper_nouns;
 
 		friend class boost::serialization::access;
 

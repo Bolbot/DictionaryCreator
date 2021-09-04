@@ -14,8 +14,6 @@
 // 	- DictionaryCreator class responsible for parsing given UTF-8 aware streams according to language rules
 // 	- DictionaryExporter class to export given dictionary to the user provided streams or ordered files
 
-// TODO: fix quite unpleasant match of struct name and argument name: dictionary_filename, same applies to dictionary_manager.cpp
-
 namespace dictionary_creator
 {
 	struct dictionary_filename
@@ -26,13 +24,14 @@ namespace dictionary_creator
 
 	class DictionaryManager;
 
-	DictionaryManager load_dictionary(utf8_string dictionary_filename);
+	DictionaryManager load_dictionary(utf8_string file_name);
 	std::vector<dictionary_filename> available_dictionaries();
 
 	class DictionaryManager
 	{
 	public:
 		DictionaryManager(Language language);
+		DictionaryManager(Language language, utf8_string name);
 
 		template <typename CharType>
 		void add_input_file(std::basic_string<CharType> file_name)
@@ -50,7 +49,6 @@ namespace dictionary_creator
 			dictionary.add_word<T>(word, std::forward<Arg>(arg)...);
 			return dictionary.lookup(std::move(word));
 		}
-		
 		std::shared_ptr<Entry> lookup_or_add_word(utf8_string word);
 		bool contains_word(utf8_string word) const;
 
@@ -81,7 +79,7 @@ namespace dictionary_creator
 		void rename(utf8_string new_name);
 		utf8_string get_name() const noexcept;
 		void save_dictionary() const;
-		friend DictionaryManager load_dictionary(utf8_string dictionary_filename);
+		friend DictionaryManager load_dictionary(utf8_string file_name);
 		friend std::vector<dictionary_filename> available_dictionaries();
 
 	private:

@@ -1,4 +1,4 @@
-#define BOOST_TEST_MODULE Test Dictionary Exporter
+#define BOOST_TEST_MODULE Dictionary Exporter Regress Test
 #include <boost/test/unit_test.hpp>
 #include <boost/test/tools/output_test_stream.hpp>
 
@@ -9,6 +9,9 @@ BOOST_AUTO_TEST_SUITE(exporter_alltogether)
 
 	bool exports_word(const dictionary_creator::Dictionary &dictionary, const dictionary_creator::utf8_string &word);
 	bool exports_words(const dictionary_creator::Dictionary &dictionary, const std::initializer_list<dictionary_creator::utf8_string> &words);
+
+// following content strongly relies on boost output_test_stream which is causing obscure LNK2019 with x86 windows
+#if !defined WIN32 || defined _WIN64
 
 	BOOST_AUTO_TEST_CASE(exporter_alltogether)
 	{
@@ -83,7 +86,9 @@ BOOST_AUTO_TEST_SUITE(exporter_alltogether)
 			BOOST_TEST_CHECK(exports_word(simple, "knife"));
 			BOOST_TEST_CHECK(exports_words(simple, { "one", "knife" }));
 		}
-	}
+}
+
+#endif
 
 	bool exports_word(const dictionary_creator::Dictionary &dictionary, const dictionary_creator::utf8_string &word)
 	{
@@ -109,5 +114,5 @@ BOOST_AUTO_TEST_SUITE(exporter_alltogether)
 
 		return true;
 	}
-
+	
 BOOST_AUTO_TEST_SUITE_END()

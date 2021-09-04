@@ -7,7 +7,7 @@
 #include <set>
 #include <map>
 #include <regex>
-#include <vector>
+#include <queue>
 #include <utility>
 #include <fstream>
 #include <algorithm>
@@ -30,15 +30,13 @@ namespace dictionary_creator
 
 		Dictionary parse_line(utf8_string line) const;
 
-		// TODO: declare default move constructor if necessary
-
 	private:
 		Dictionary parse_one_file(std::istream &file_input);
 
 		void remove_crlf(utf8_string &string) const;
 
 		Language language;
-		std::vector<std::unique_ptr<std::istream>> input_files;
+		std::queue<std::unique_ptr<std::istream>> input_files;
 
 		size_t minimal_substantial_word_length;
 		utf8_string terminating_characters;

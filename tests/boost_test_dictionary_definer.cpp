@@ -1,4 +1,4 @@
-#define BOOST_TEST_MODULE Test Dictionary Definer
+#define BOOST_TEST_MODULE Dictionary Definer Regress Test
 #include <boost/test/unit_test.hpp>
 
 #include "dictionary_definer.h"

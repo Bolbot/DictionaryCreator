@@ -104,6 +104,37 @@ namespace s_ex
 	Nici măcar eu.)";
 
 
+	constexpr char fr_subtitles[] = u8R"(
+	255
+	00:38:12,566 --> 00:38:15,029
+	Je vous répugne.
+
+	256
+	00:38:16,677 --> 00:38:20,347
+	Vous me trouvez
+	bien laid.
+
+	257
+	00:38:20,453 --> 00:38:22,955
+	Je ne sais pas
+	mentir, la Bête.
+
+	258
+	00:38:23,998 --> 00:38:27,354
+	Tout est-il ici
+	à votre convenance.
+
+	259
+	00:38:27,411 --> 00:38:30,614
+	Je ne me trouve pas très à l'aise,
+	dans ces beaux atouts,
+
+	260
+	00:38:30,624 --> 00:38:33,196
+	et je n'ai pas l'habitude
+	qu'on me serve.)";
+
+
 	constexpr char rus_subtitles_1[] = u8R"(0
 	00:00:23,680 --> 00:00:27,355
 	Нимбус фильм
@@ -157,6 +188,23 @@ namespace s_ex
 	5
 	00:02:05,727 --> 00:02:08,195
 	которую забрала смерть.)";
+
+	constexpr char de_subtitles[] = u8R"(
+	1
+	00:00:21,447 --> 00:00:27,044
+	Über ein Viertel des Films Metropolis
+	muss als verloren gelten.
+
+	2
+	00:00:29,007 --> 00:00:33,000
+	Wenige Filme sind so systematisch
+	verändert, verstümmelt,
+
+	3
+	00:00:33,047 --> 00:00:37,996
+	verfälscht worden wie dieser. Es wurde
+	weggelassen, umgestellt, umgetitelt.
+	)";
 
 
 	constexpr char ascii_art[] = u8R"(=====================================================
@@ -215,6 +263,11 @@ namespace s_ex
 	____________`8I,___________,8I'__________I8__:8' 
 	_____________`8I,_________,8I'___________I8__:8 )";
 
+	constexpr char french_pangram[] = u8R"(Portez ce vieux whisky au juge blond qui fume sur son île intérieure, à côté de l'alcôve ovoïde, où les bûches se consument dans l'âtre, ce qui lui permet de penser à la cænogénèse de l'être dont il est question dans la cause ambiguë entendue à Moÿ, dans un capharnaüm qui, pense-t-il, diminue çà et là la qualité de son œuvre.)";
+
+	constexpr char nietzsche[] = u8R"(Nicht, was die Menschheit ablösen soll in der Reihenfolge der Wesen, ist das Problem, das ich hiermit stelle (— der Mensch ist ein Ende —): sondern welchen Typus Mensch man züchten soll, wollen soll, als den höherwerthigeren, lebenswürdigeren, zukunftsgewisseren.
+Dieser höherwerthigere Typus ist oft genug schon dagewesen: aber als ein Glücksfall, als eine Ausnahme, niemals als gewollt. Vielmehr ist er gerade am besten gefürchtet worden, er war bisher beinahe das Furchtbare; — und aus der Furcht heraus wurde der umgekehrte Typus gewollt, gezüchtet, erreicht: das Hausthier, das Heerdenthier, das kranke Thier Mensch, — der
+Christ ... )";
 }
 
 #endif

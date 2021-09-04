@@ -5,6 +5,8 @@
 
 BOOST_AUTO_TEST_SUITE(dictionary_alltogether)
 
+	using dictionary_creator::criteria_dependent_sorters;
+
 	const std::initializer_list<dictionary_creator::utf8_string> english_words
 	{
 		"arcbishop", "bomb", "cat", "dark", "enormous", "fly", "govern", "holy", "inactive", "jolly",
@@ -177,7 +179,11 @@ BOOST_AUTO_TEST_SUITE(dictionary_alltogether)
 			BOOST_TEST_CHECK(english_shortest.size() == 26u);
 			auto english_longest = eng.get_top(dictionary_creator::ComparisonType::Longest, 1'000'000);
 			BOOST_TEST_CHECK(english_longest.size() == 26u);
-			// TODO: check they're actually sorted
+
+			auto shortest_criterion = criteria_dependent_sorters[static_cast<size_t>(dictionary_creator::ComparisonType::Shortest)];
+			BOOST_TEST_CHECK(std::is_sorted(english_shortest.begin(), english_shortest.end(), shortest_criterion));
+			auto longest_criterion = criteria_dependent_sorters[static_cast<size_t>(dictionary_creator::ComparisonType::Longest)];
+			BOOST_TEST_CHECK(std::is_sorted(english_longest.begin(), english_longest.end(), longest_criterion));
 		}
 
 		BOOST_TEST_CONTEXT("get_top() by ambiguity")
@@ -191,9 +197,15 @@ BOOST_AUTO_TEST_SUITE(dictionary_alltogether)
 			BOOST_TEST_CHECK(eng.get_top(dictionary_creator::ComparisonType::LeastAmbiguous, 0).size() == 0u);
 
 			BOOST_TEST_INFO("If requested number exceeds the size, all entries are returned sorted");
-			// TODO: check they're actually sorted
-			BOOST_TEST_CHECK(eng.get_top(dictionary_creator::ComparisonType::MostAmbiguous, 1'000'000).size() == 26u);
-			BOOST_TEST_CHECK(eng.get_top(dictionary_creator::ComparisonType::LeastAmbiguous, 1'000'000).size() == 26u);
+			auto most = eng.get_top(dictionary_creator::ComparisonType::MostAmbiguous, 1'000'000);
+			BOOST_TEST_CHECK(most.size() == 26u);
+			auto least = eng.get_top(dictionary_creator::ComparisonType::LeastAmbiguous, 1'000'000);
+			BOOST_TEST_CHECK(least.size() == 26u);
+
+			auto most_criterion = criteria_dependent_sorters[static_cast<size_t>(dictionary_creator::ComparisonType::MostAmbiguous)];
+			BOOST_TEST_CHECK(std::is_sorted(most.begin(), most.end(), most_criterion));
+			auto least_criterion = criteria_dependent_sorters[static_cast<size_t>(dictionary_creator::ComparisonType::LeastAmbiguous)];
+			BOOST_TEST_CHECK(std::is_sorted(least.begin(), least.end(), least_criterion));
 		}
 
 		BOOST_TEST_CONTEXT("get_top() by frequency")
@@ -211,9 +223,15 @@ BOOST_AUTO_TEST_SUITE(dictionary_alltogether)
 			BOOST_TEST_CHECK(eng.get_top(dictionary_creator::ComparisonType::LeastFrequent, 0).size() == 0u);
 
 			BOOST_TEST_INFO("If requested number exceeds the size, all entries are returned sorted");
-			// TODO: check they're actually sorted
-			BOOST_TEST_CHECK(eng.get_top(dictionary_creator::ComparisonType::LeastFrequent, 1'000'000).size() == 26u);
-			BOOST_TEST_CHECK(eng.get_top(dictionary_creator::ComparisonType::MostFrequent, 1'000'000).size() == 26u);
+			auto most = eng.get_top(dictionary_creator::ComparisonType::MostFrequent, 1'000'000);
+			BOOST_TEST_CHECK(most.size() == 26u);
+			auto least = eng.get_top(dictionary_creator::ComparisonType::LeastFrequent, 1'000'000);
+			BOOST_TEST_CHECK(least.size() == 26u);
+
+			auto most_criterion = criteria_dependent_sorters[static_cast<size_t>(dictionary_creator::ComparisonType::MostFrequent)];
+			BOOST_TEST_CHECK(std::is_sorted(most.begin(), most.end(), most_criterion));
+			auto least_criterion = criteria_dependent_sorters[static_cast<size_t>(dictionary_creator::ComparisonType::LeastFrequent)];
+			BOOST_TEST_CHECK(std::is_sorted(least.begin(), least.end(), least_criterion));
 		}
 
 		BOOST_TEST_CONTEXT("get_random_word() and get_random_words()")

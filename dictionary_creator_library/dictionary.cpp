@@ -18,7 +18,10 @@ bool dictionary_creator::DefaultEntrySorter::operator()
 	return a < b->get_word();
 }
 
-dictionary_creator::Dictionary::Dictionary(dictionary_creator::Language language) : language{ language }
+dictionary_creator::Dictionary::Dictionary(dictionary_creator::Language language) :
+	language{ language },
+	dictionary{ supported_locales[static_cast<size_t>(language)]},
+	proper_nouns{ supported_locales[static_cast<size_t>(language)]}
 {}
 
 dictionary_creator::Dictionary &dictionary_creator::Dictionary::merge(const dictionary_creator::Dictionary &other)

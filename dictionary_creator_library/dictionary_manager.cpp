@@ -11,38 +11,15 @@ dictionary_creator::DictionaryManager::DictionaryManager(dictionary_creator::Lan
 	srand(time(nullptr));
 }
 
-/*	// OBSOLETE
-void dictionary_creator::DictionaryManager::add_input_file(std::string file_name)
+dictionary_creator::DictionaryManager::DictionaryManager(dictionary_creator::Language language, dictionary_creator::utf8_string name) :
+	name{ std::move(name) },
+	definer{ [language] (dictionary_creator::utf8_string word) { return define_word(std::move(word), language); } },
+	dictionary{ language },
+	creator{ language },
+	exporter{ &std::cout }
 {
-	constexpr bool prebuffered_file_input = true;
-
-	if constexpr (prebuffered_file_input)
-	{
-		std::ifstream stream(file_name);
-
-		if (stream.good())
-		{
-			stream.seekg(0, std::ios::end);
-			const std::streamsize size = stream.tellg();
-			stream.seekg(0, std::ios::beg);
-
-			std::string buffer(size, 0);
-			stream.read(buffer.data(), buffer.size());
-			auto contents = std::make_unique<std::istringstream>(buffer);
-
-			creator.add_input(std::move(contents));
-		}
-	}
-	else
-	{
-		if (std::ifstream just_a_check(file_name); just_a_check.good() == false)
-		{
-			return;
-		}
-		creator.add_input(std::unique_ptr<std::istream>(new std::ifstream(file_name)));
-	}
+	srand(time(nullptr));
 }
-*/
 
 void dictionary_creator::DictionaryManager::add_input_file(std::ifstream &&file_stream)
 {
@@ -229,13 +206,13 @@ void dictionary_creator::DictionaryManager::save_dictionary() const
 	}
 }
 
-dictionary_creator::DictionaryManager dictionary_creator::load_dictionary(dictionary_creator::utf8_string dictionary_filename)
+dictionary_creator::DictionaryManager dictionary_creator::load_dictionary(dictionary_creator::utf8_string file_name)
 {
 	dictionary_creator::Dictionary acquired_dictionary(dictionary_creator::Language::Uninitialized);
 
 	dictionary_creator::utf8_string acquired_name;
 
-	if (std::ifstream stream(dictionary_filename); stream.good())
+	if (std::ifstream stream(file_name); stream.good())
 	{
 		boost::archive::text_iarchive ia(stream);
 		ia & acquired_name;
@@ -249,34 +226,29 @@ dictionary_creator::DictionaryManager dictionary_creator::load_dictionary(dictio
 	dictionary_creator::DictionaryManager result(acquired_dictionary.get_language());
 	result.rename(std::move(acquired_name));
 	result.dictionary = std::move(acquired_dictionary);
-// TODO: fix this
-// some reasoning: since PIMPL was introduced in RegexParser it may've lost the default generated copy and move constructors and assignment
-//					restoring it's movable/copyable state may help
-//					otherwise problem is the default constructor, but it wasn't available before anyway
-//					got to inspect that problem
-	// Problem definetely is in malfunctioning of NRVO
-	// even without relying on NRVO following statement shoud leverage move constructor, not a copy constructor
-	// TODO: look up the same problem reports and solutions
+
 	return result;
-//	return dictionary_creator::DictionaryManager(acquired_dictionary.get_language());
 }
 
 std::vector<dictionary_creator::dictionary_filename> dictionary_creator::available_dictionaries()
 {
 	std::vector<dictionary_creator::dictionary_filename> result;
 
-	for (const auto &path: std::filesystem::directory_iterator(dictionary_creator::DictionaryManager::dictionaries_directory))
+	if (std::filesystem::exists(dictionary_creator::DictionaryManager::dictionaries_directory))
 	{
-		auto full = path.path().string();
-		if (auto found = full.rfind(dictionary_creator::DictionaryManager::dictionaries_extension);
-				found == (full.size() - strlen(dictionary_creator::DictionaryManager::dictionaries_extension)))
+		for (const auto &path: std::filesystem::directory_iterator(dictionary_creator::DictionaryManager::dictionaries_directory))
 		{
-			dictionary_creator::dictionary_filename current = { std::move(full), std::string_view{} };
-			size_t start_shift = strlen(dictionary_creator::DictionaryManager::dictionaries_directory) + 1;
-			size_t end_shift = current.full.rfind(dictionary_creator::DictionaryManager::dictionaries_extension);
+			auto full = path.path().string();
+			if (auto found = full.rfind(dictionary_creator::DictionaryManager::dictionaries_extension);
+					found == (full.size() - strlen(dictionary_creator::DictionaryManager::dictionaries_extension)))
+			{
+				dictionary_creator::dictionary_filename current = { std::move(full), std::string_view{} };
+				size_t start_shift = strlen(dictionary_creator::DictionaryManager::dictionaries_directory) + 1;
+				size_t end_shift = current.full.rfind(dictionary_creator::DictionaryManager::dictionaries_extension);
 
-			result.push_back(std::move(current));
-			result.back().human_readable = std::string_view(result.back().full.data() + start_shift, end_shift - start_shift);
+				result.push_back(std::move(current));
+				result.back().human_readable = std::string_view(result.back().full.data() + start_shift, end_shift - start_shift);
+			}
 		}
 	}
 

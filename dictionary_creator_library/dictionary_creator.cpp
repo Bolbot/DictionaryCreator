@@ -42,12 +42,18 @@ dictionary_creator::DictionaryCreator::DictionaryCreator(Language language)
 			[language, this]
 			{
 		       		dictionary_creator::utf8_string res = 
-					dictionary_creator::utf8_string{ "(*UTF8)[" }
+					dictionary_creator::utf8_string{ u8R"(\b([)" }
 					+ dictionary_creator::uppercase_letters[static_cast<size_t>(language)]
+					+ "]["
+					+ dictionary_creator::lowercase_letters[static_cast<size_t>(language)]
+					+ dictionary_creator::utf8_string{ "]{" }
+					+ std::to_string(minimal_substantial_word_length - 1)
+					+ dictionary_creator::utf8_string{ ",}" }
+					+ u8R"()\b|\b([)"
 					+ dictionary_creator::lowercase_letters[static_cast<size_t>(language)]
 					+ dictionary_creator::utf8_string{ "]{" }
 					+ std::to_string(minimal_substantial_word_length)
-					+ dictionary_creator::utf8_string{ ",}" };
+					+ dictionary_creator::utf8_string{ u8R"(,})\b)" };
 				return res;
 			}()
 			}.c_str())
@@ -56,25 +62,25 @@ dictionary_creator::DictionaryCreator::DictionaryCreator(Language language)
 
 void dictionary_creator::DictionaryCreator::add_input(std::unique_ptr<std::istream> &&uptr_to_stream)
 {
-	input_files.push_back(std::move(uptr_to_stream));
+	if (uptr_to_stream != nullptr)
+	{
+		input_files.push(std::move(uptr_to_stream));
+	}
 }
 
 dictionary_creator::Dictionary dictionary_creator::DictionaryCreator::parse_to_dictionary()
 {
 	dictionary_creator::Dictionary result(language);
 
-	for (auto &input_stream: input_files)
+	while (!input_files.empty())
 	{
-		if (input_stream->good())
+		auto &current = input_files.front();
+		if (current->good())
 		{
-			dictionary_creator::Dictionary file_dictionary = parse_one_file(*input_stream);
-			result.merge(std::move(file_dictionary));
+			result.merge(parse_one_file(*current));
 		}
-		input_stream.reset();
+		input_files.pop();
 	}
-
-	auto first_removed = std::remove_if(input_files.begin(), input_files.end(), [](const std::unique_ptr<std::istream> &s) { return s == nullptr;  });
-	input_files.erase(first_removed, input_files.end());
 
 	return result;
 }

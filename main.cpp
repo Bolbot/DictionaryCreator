@@ -13,41 +13,18 @@
 // 				solution may involve having a localy stored json objects for each url
 // 				but how to store them all in a way alowing to access them quick? that is the question
 //
-// CMake overhaul TO-DO:		Declare platform-unaware API in this file - include fs_manager.h now	DONE
-// 				Move platform logic in CMakeLists.txt					DONE
-// 				Create subdirectories related to platforms				DONE
-// 				Rewrite main()								DONE
-// 				move freestanding FS functions from here to some class interface...	not class
-// 				...and separate implementations for OS					DONE
-//				revise nested header includes and move to source files all possible	DONE and even PIMPL
-//				compile and run to see it eventually works				DONE, both Win and Unix, both static and shared
+// German TODO:			Design and implement the approach to parsing german words
+// 				current issue: capitalized nouns are treated as proper nouns
 //
-// CMake improvements TO-DO:	Provide installation			DONE
-// 				Provide packaging			DONE
-// 				Provide testing				DONE
-// 				Provide CMake exporting			DONE
+// Test fix TODO:		Find a way around bugged boost test output stream in win x86
+// 				or
+// 				rewrite dependent tests with no relying on that one
 //
-// PCRE fix TODO:		Find out the exact discrepancies in the PCRE parser behaviour
-// 				Put down some necessary steps to fix it
-// 				Fix it
-// 				
-//
-// Refinement TO-DO:	make load_dictionary return the DictionaryManager objects with names corresponding to requested ones DONE
-// 			test it and make sure it works DONE
-//
-// Connections hotfix TO-DO:	look into the unicode containing URL issue, find a solution to request UTF letters				DONE
-// 				implement it either in dictionary_definer.cpp define_word() or in connections.cpp in constructor		DONE
-// 				if it takes adding third party libraries, link them in cmake and run up some separate simple_tests for them	NOPE
-// 				update test_connections to test against words 'naïve', 'scheiße', and 'дирижабль'				DONE
-//
-// Console interface TO-DO:	separate windows-related and unix-related checks
-// 				implement a consistent working and uniform scenario for opening and saving files via main
-// 					either
-// 						use std::filesystem to deal with platform-related issues	// total NO - useless garbage
-// 					or
-// 						provide a set of platform-aware headers dealing with filenames and opening files	DONE
-//					revise the interfaces providing an overload for std::wstring file names and use those with Windows DONE
-// 				test it using different languages in file names and expected contents (ru/ru, en/en, en/ru, ru/en, jap/ru, ru/fr) DONE
+// More tests TODO:		Test dictionaries with more than one word for each letter
+// 				Test поезд поёт поэт
+// 				Test écran enchanteé et commencer commençon
+// 				Test some german umlaut words
+// 				Test files (ru/ru, en/en, en/ru, ru/en, jap/ru, ru/fr) as another boost test
 //
 // Completeness TO-DO:	provide some missing features
 // 			list them below:
@@ -58,11 +35,6 @@
 // 					deduce required space upon dictionary loading
 // 					how to resize when more space is needed during the work?
 // 					what if there is not enough allocated space?
-//
-// Test convenience TO-DO:	revise testing approach DONE
-// 				redesign inner structure of the project to build a dictionary_creator lib apart from tests and executables DONE
-// 				engage some unit test framework and provide regression testing in separate subdirectories and executables  DONE
-// 				mark existing huge_tests and simple_test as obsolete and move there	DONE
 //
 // Most distant TODO: implement task-based or thread-pool-based concurrent beforehand web-api processing of dictionary words
 // 			find a bottleneck in processing
@@ -119,7 +91,6 @@ void manage_dictionary()
 
 	std::cout << "Exporting done" << std::endl;
 }
-
 
 int main (int argc, char **argv)
 {

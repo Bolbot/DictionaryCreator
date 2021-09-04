@@ -5,6 +5,7 @@
 #include <vector>
 #include <locale>
 #include <exception>
+#include <array>
 
 #include "dictionary_types.h"
 
@@ -16,6 +17,9 @@
 // 	-- how the first unicode letter is uppercased and returned
 //
 // 	-- consider creating a base class that is language-aware and has constant public member Language
+//
+// 	-- words consisting of the same letter repeated: english - none, french - aa & mmm (negligible), russian - none (ее for её is negligible)
+// 	-- words containing tripple letter: english - none, french - ...éée, not exact, russian - змееед, длинношеее... german - plenty of 'em
 
 namespace dictionary_creator
 {
@@ -23,6 +27,27 @@ namespace dictionary_creator
 	{
 		Uninitialized = 0,
 		English = 1, French = 2, Russian = 3, German = 4
+	};
+
+	inline std::locale noexcept_locale_initializer(const char *name) noexcept
+	{
+		try
+		{
+			return std::locale(name);
+		}
+		catch (...)
+		{
+			return std::locale("");
+		}
+	}
+
+	const std::array<std::locale, 5> supported_locales
+	{
+		noexcept_locale_initializer(""),
+		noexcept_locale_initializer("en_US.UTF-8"),
+		noexcept_locale_initializer("fr_FR.UTF-8"),
+		noexcept_locale_initializer("ru_RU.UTF-8"),
+		noexcept_locale_initializer("de_DE.UTF-8")
 	};
 
 	inline size_t utf8_length(const utf8_string &string) noexcept
@@ -197,11 +222,11 @@ namespace dictionary_creator
 
 	const std::vector<utf8_string> uppercase_letters
 	{
-		u8"", u8"A-Z", u8"A-ZÀÂÆÇÈÉÊËÏÎÔŒÙÛŸ", u8"АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ", u8"A-ZÄÖÜẞ"
+		u8"", u8"A-Z", u8"A-ZÀÂÆÇÈÉÊËÏÎÔŒÙÛÜŸ", u8"АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ", u8"A-ZÄÖÜẞ"
 	};
 	const std::vector<utf8_string> lowercase_letters
 	{
-		u8"", u8"a-z", u8"a-zàâæçèéêëïîôœùûÿ", u8"абвгдеёжзийклмнопрстуфхцчшщъыьэюя", u8"a-zäöüß"
+		u8"", u8"a-z", u8"a-zàâæçèéêëïîôœùûüÿ", u8"абвгдеёжзийклмнопрстуфхцчшщъыьэюя", u8"a-zäöüß"
 	};
 }
 
