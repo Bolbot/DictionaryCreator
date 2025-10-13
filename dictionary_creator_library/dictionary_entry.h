@@ -1,7 +1,8 @@
-#ifndef __DICTIONARY_ENTRY_H__
-#define __DICTIONARY_ENTRY_H__
+#pragma once
 
+#ifndef BOOST_UNAVAILABLE
 #include <boost/serialization/access.hpp>
+#endif
 
 #include "dictionary_types.h"
 
@@ -29,7 +30,9 @@ namespace dictionary_creator
 		size_t encounters;
 		bool defined;
 
+#ifndef BOOST_UNAVAILABLE
 		friend class boost::serialization::access;
+#endif
 
 		template <typename A>
 		void serialize(A &arch,[[ maybe_unused ]] const unsigned int version)
@@ -41,5 +44,3 @@ namespace dictionary_creator
 		}
 	};
 }
-
-#endif

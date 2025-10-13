@@ -1,31 +1,24 @@
 #include "regex_parser.h"
 
-#define USING_PCRE_FOR_REGEX_PARSING 1
-
 #if __has_include(<pcre.h>) && USING_PCRE_FOR_REGEX_PARSING
 	#include <pcre.h>
-	#define __PCRE_IS_AVAILABLE__
+	#define PCRE_IS_AVAILABLE
 #endif
 
 
-#ifdef __PCRE_IS_AVAILABLE__
-
+#ifdef PCRE_IS_AVAILABLE
 constexpr size_t default_output_vector_size = 27;
 constexpr int default_pcre_compile_options = PCRE_UTF8 | PCRE_UCP;
 constexpr int default_pcre_exec_options = 0;
 constexpr unsigned char* const default_pcre_compile_table_ptr = nullptr;
-#ifdef __PCRE_IS_AVAILABLE__
 constexpr pcre_extra* const default_pcre_exec_extra = nullptr;
-#endif
 
 struct pcre_parser::RegexParser::Impl
 {
 	const char* error{ nullptr };
 	int error_offset{ 0 };
 	const unsigned char* table_pointer{ default_pcre_compile_table_ptr };
-#ifdef __PCRE_IS_AVAILABLE__
 	pcre* regex;
-#endif
 
 	Impl(const char *pattern);
 };
@@ -34,6 +27,16 @@ pcre_parser::RegexParser::Impl::Impl(const char *pattern)
 	:
 	regex{ pcre_compile(pattern, default_pcre_compile_options, &error, &error_offset, table_pointer) }
 {}
+#else
+struct pcre_parser::RegexParser::Impl
+{
+	Impl(const char*) {}
+	const char* error{ nullptr };
+	int error_offset{ 0 };
+	void* regex{ nullptr };
+};
+#endif // PCRE_IS_AVAILABLE
+
 
 pcre_parser::RegexParser::RegexParser(const char *pattern)
 	: impl{ new pcre_parser::RegexParser::Impl(pattern) }
@@ -52,6 +55,8 @@ pcre_parser::RegexParser::~RegexParser() = default;
 
 pcre_parser::RegexParser::RegexParser(RegexParser &&) noexcept = default;
 pcre_parser::RegexParser &pcre_parser::RegexParser::operator=(pcre_parser::RegexParser &&) noexcept = default;
+
+#ifdef PCRE_IS_AVAILABLE
 
 int pcre_parser::RegexParser::process_pcre_exec(const std::string &source, int start_offset, std::vector<int> &outputs) const
 {
@@ -119,11 +124,8 @@ pcre_parser::matches pcre_parser::RegexParser::all_matches(const std::string &so
 
 #else
 
-// comment following assert to allow a nonfunctional execution
-static_assert(false, "PCRE IS NOT AVAILABLE");
-
-pcre_parser::RegexParser::RegexParser(const char *pattern)
-{}
+// uncomment following assert to disallow a nonfunctional execution
+//static_assert(false, "PCRE IS NOT AVAILABLE");
 
 std::string pcre_parser::RegexParser::single_match(const std::string &source, int start_offset) const
 {
@@ -135,4 +137,4 @@ pcre_parser::matches pcre_parser::RegexParser::all_matches(const std::string &so
 	return { "PCRE is not available" };
 }
 
-#endif
+#endif // PCRE_IS_AVAILABLE

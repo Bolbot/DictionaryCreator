@@ -1,9 +1,15 @@
-#ifndef __DICTIONARY_TYPES_H__
-#define __DICTIONARY_TYPES_H__
+#pragma once
 
+#ifndef BOOST_UNAVAILABLE
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/map.hpp>
 #include <boost/serialization/set.hpp>
+#else
+#include <string>
+#include <map>
+#include <set>
+#endif // BOOST_UNAVAILABLE
+
 #include <functional>
 #include <exception>
 
@@ -29,5 +35,3 @@ namespace dictionary_creator
 		using std::runtime_error::runtime_error;
 	};
 }
-
-#endif

@@ -1,7 +1,7 @@
 # ========== THIRD-PARTY ==========
 
-find_package(CURL REQUIRED)								# for connections library
-find_package(unofficial-pcre REQUIRED)							# for regex_parser library
+find_package(CURL CONFIG QUIET)                         # for connections library
+find_package(unofficial-pcre CONFIG QUIET)              # for regex_parser library
 
 include(FetchContent)
 FetchContent_Declare(json								# for dictionary_definer library
@@ -11,32 +11,45 @@ FetchContent_MakeAvailable(json)
 
 set(Boost_NO_BOOST_CMAKE ON)
 set(Boost_USE_MULTITHREADED ON)
-find_package(Boost REQUIRED COMPONENTS serialization)					# for almost every dictionary library
+find_package(Boost COMPONENTS serialization CONFIG QUIET)					# for almost every dictionary library
 
 
 # ========== DECLARATIONS ==========
 
 add_library(connections connections.cpp)
-target_link_libraries(connections PRIVATE CURL::libcurl)
+if (CURL_FOUND)
+	target_link_libraries(connections PRIVATE CURL::libcurl)
+	target_compile_definitions(connections PRIVATE "CURL_IS_AVALIABLE")
+else ()
+	# connections expects CURL_IS_AVALIABLE defined from outside; by skipping it, we make it fallback to no-op
+	message(WARNING "Failed to find Curl. The connections library will be no-op")
+endif ()
 
 add_library(regex_parser regex_parser.cpp)
-target_link_libraries(regex_parser PRIVATE unofficial::pcre::pcre DictionaryCreator_compiler_flags)
+
+if (unofficial-pcre_FOUND)
+	target_link_libraries(regex_parser PRIVATE unofficial::pcre::pcre DictionaryCreator_compiler_flags)
+	target_compile_definitions(regex_parser PRIVATE "USING_PCRE_FOR_REGEX_PARSING")
+else ()
+	# regex_parser expects USING_PCRE_FOR_REGEX_PARSING defined from outside; by skipping it, we make it fallback to no-op
+	message(WARNING "Failed to find unofficial-pcre. The regex_parser library will be no-op")
+endif()
 
 
 add_library(dictionary_definer dictionary_definer.cpp)
-target_link_libraries(dictionary_definer PRIVATE nlohmann_json::nlohmann_json connections Boost::serialization DictionaryCreator_compiler_flags)
+target_link_libraries(dictionary_definer PRIVATE nlohmann_json::nlohmann_json connections DictionaryCreator_compiler_flags)
 
 add_library(dictionary_entry dictionary_entry.cpp)
-target_link_libraries(dictionary_entry PUBLIC Boost::serialization PRIVATE DictionaryCreator_compiler_flags)
+target_link_libraries(dictionary_entry PUBLIC PRIVATE DictionaryCreator_compiler_flags)
 
 add_library(dictionary dictionary.cpp)
-target_link_libraries(dictionary PUBLIC dictionary_entry PRIVATE Boost::serialization DictionaryCreator_compiler_flags)
+target_link_libraries(dictionary PUBLIC dictionary_entry PRIVATE DictionaryCreator_compiler_flags)
 
 add_library(dictionary_creator dictionary_creator.cpp)
 target_link_libraries(dictionary_creator PUBLIC dictionary regex_parser PRIVATE DictionaryCreator_compiler_flags)
 
 add_library(dictionary_manager dictionary_manager.cpp)
-target_link_libraries(dictionary_manager PUBLIC dictionary_creator PRIVATE dictionary_definer Boost::serialization DictionaryCreator_compiler_flags)
+target_link_libraries(dictionary_manager PUBLIC dictionary_creator PRIVATE dictionary_definer DictionaryCreator_compiler_flags)
 target_include_directories(dictionary_manager PUBLIC
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
@@ -44,6 +57,21 @@ add_library(DictionaryCreator ALIAS dictionary_manager)
 
 set_target_properties(dictionary_manager dictionary_creator dictionary dictionary_entry dictionary_definer 
 	PROPERTIES FOLDER dictionary_creator)
+
+if (Boost_FOUND)
+	target_link_libraries(dictionary_definer PRIVATE Boost::serialization)
+	target_link_libraries(dictionary_entry   PRIVATE Boost::serialization)
+	target_link_libraries(dictionary         PRIVATE Boost::serialization)
+	target_link_libraries(dictionary_creator PRIVATE Boost::serialization)
+	target_link_libraries(dictionary_manager PRIVATE Boost::serialization)
+else ()
+	message(WARNING "Failed to find Boost, the serialization will be no-op")
+	target_compile_definitions(dictionary_definer PRIVATE "BOOST_UNAVAILABLE")
+	target_compile_definitions(dictionary_entry   PRIVATE "BOOST_UNAVAILABLE")
+	target_compile_definitions(dictionary         PRIVATE "BOOST_UNAVAILABLE")
+	target_compile_definitions(dictionary_creator PRIVATE "BOOST_UNAVAILABLE")
+	target_compile_definitions(dictionary_manager PUBLIC  "BOOST_UNAVAILABLE")		# required by DictionaryCreatorConsoleApp
+endif()
 
 
 # ========== INSTALLATION ==========

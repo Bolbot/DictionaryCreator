@@ -8,7 +8,7 @@ dictionary_creator::DictionaryManager::DictionaryManager(dictionary_creator::Lan
 	creator{ language },
 	exporter{ &std::cout }
 {
-	srand(time(nullptr));
+	srand(static_cast<unsigned int>(time(nullptr)));
 }
 
 dictionary_creator::DictionaryManager::DictionaryManager(dictionary_creator::Language language, dictionary_creator::utf8_string name) :
@@ -18,7 +18,7 @@ dictionary_creator::DictionaryManager::DictionaryManager(dictionary_creator::Lan
 	creator{ language },
 	exporter{ &std::cout }
 {
-	srand(time(nullptr));
+	srand(static_cast<unsigned int>(time(nullptr)));
 }
 
 void dictionary_creator::DictionaryManager::add_input_file(std::ifstream &&file_stream)
@@ -194,6 +194,7 @@ void dictionary_creator::DictionaryManager::save_dictionary() const
 	}
 
 	std::ofstream output(dictionary_creator::utf8_string{ dictionaries_directory } + u8"/" + name + dictionaries_extension);
+#ifndef BOOST_UNAVAILABLE
 	if (output.good())
 	{
 		boost::archive::text_oarchive oa(output);
@@ -201,17 +202,18 @@ void dictionary_creator::DictionaryManager::save_dictionary() const
 		oa & dictionary;
 	}
 	else
-	{
+#endif // BOOST_UNAVAILABLE
 		throw std::runtime_error("Saving failed, coudn't write to that file");
-	}
 }
 
-dictionary_creator::DictionaryManager dictionary_creator::load_dictionary(dictionary_creator::utf8_string file_name)
+#pragma warning(disable: 4702)
+dictionary_creator::DictionaryManager dictionary_creator::load_dictionary([[ maybe_unused ]] dictionary_creator::utf8_string file_name)
 {
 	dictionary_creator::Dictionary acquired_dictionary(dictionary_creator::Language::Uninitialized);
 
 	dictionary_creator::utf8_string acquired_name;
 
+#ifndef BOOST_UNAVAILABLE
 	if (std::ifstream stream(file_name); stream.good())
 	{
 		boost::archive::text_iarchive ia(stream);
@@ -219,9 +221,8 @@ dictionary_creator::DictionaryManager dictionary_creator::load_dictionary(dictio
 		ia & acquired_dictionary;
 	}
 	else
-	{
+#endif // BOOST_UNAVAILABLE
 		throw std::runtime_error("Failed to read the file");
-	}
 
 	dictionary_creator::DictionaryManager result(acquired_dictionary.get_language());
 	result.rename(std::move(acquired_name));

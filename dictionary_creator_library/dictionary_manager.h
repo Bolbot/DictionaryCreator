@@ -1,13 +1,15 @@
-#ifndef __DICTIONARY_MANAGER_H__
-#define __DICTIONARY_MANAGER_H__
+#pragma once
 
 #include "dictionary.h"
 #include "dictionary_creator.h"
 
 #include <filesystem>
+
+#ifndef BOOST_UNAVAILABLE
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/serialization/export.hpp>
+#endif // BOOST_UNAVAILABLE
 
 // This class contains all the dictionary related features, that is
 // 	- Dictionary class to store the dictionary itself
@@ -93,5 +95,3 @@ namespace dictionary_creator
 		static constexpr auto dictionaries_extension = ".dic";
 	};
 }
-
-#endif

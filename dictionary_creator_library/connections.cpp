@@ -3,7 +3,7 @@
 #include <string>
 
 
-#ifdef __CURL_IS_AVALIABLE__
+#ifdef CURL_IS_AVALIABLE
 
 struct CurlGlobalHandle
 {
@@ -95,7 +95,7 @@ public:
 	}
 };
 
-#endif
+#endif // CURL_IS_AVALIABLE
 
 
 std::string connections::get(const char *URI)

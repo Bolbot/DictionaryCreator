@@ -120,7 +120,7 @@ namespace dictionary_creator
 					code = 0x152;
 				}
 
-				letter[0] = (0xC0 | (code >> 0x6));
+				letter[0] = static_cast<char>(0xC0 | (code >> 0x6));
 				letter[1] = (0x80 | (code & 0x3F));
 				
 				return letter;
@@ -143,7 +143,7 @@ namespace dictionary_creator
 					code = 0x401;
 				}
 
-				letter[0] = (0xC0 | (code >> 0x6));
+				letter[0] = static_cast<char>(0xC0 | (code >> 0x6));
 				letter[1] = (0x80 | (code & 0x3F));
 
 				return letter;
@@ -190,7 +190,7 @@ namespace dictionary_creator
 					return dictionary_creator::letter_type{ u8"\U00001E9E" };
 				}
 
-				letter[0] = (0xC0 | (code >> 0x6));
+				letter[0] = static_cast<char>(0xC0 | (code >> 0x6));
 				letter[1] = (0x80 | (code & 0x3F));
 				
 				return letter;

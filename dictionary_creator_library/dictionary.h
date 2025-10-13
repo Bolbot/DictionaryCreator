@@ -1,5 +1,4 @@
-#ifndef __DICTIONARY_H__
-#define __DICTIONARY_H__
+#pragma once
 
 #define NOMINMAX
 
@@ -17,7 +16,11 @@
 #include <functional>
 #include <cmath>
 
+#ifndef BOOST_UNAVAILABLE
 #include <boost/serialization/shared_ptr.hpp>
+#else
+#include <memory>
+#endif
 
 #include "dictionary_types.h"
 #include "dictionary_entry.h"
@@ -202,7 +205,9 @@ namespace dictionary_creator
 		std::map<letter_type, std::set<std::shared_ptr<Entry>, DefaultEntrySorter>, string_comp> dictionary;
 		std::map<letter_type, std::set<std::shared_ptr<Entry>, DefaultEntrySorter>, string_comp> proper_nouns;
 
+#ifndef BOOST_UNAVAILABLE
 		friend class boost::serialization::access;
+#endif
 
 		template <typename A>
 		void serialize(A &arch, [[ maybe_unused ]] const unsigned int version)
@@ -275,5 +280,3 @@ namespace dictionary_creator
 		utf8_string undefined_warning;
 	};
 }
-
-#endif
