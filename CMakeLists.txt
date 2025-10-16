@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.17)
 
 project(DictionaryCreator
-	VERSION 0.8.9
+	VERSION 0.8.10
 	DESCRIPTION "Soulution for parsing texts into dictionaries"
 	LANGUAGES CXX)
 
