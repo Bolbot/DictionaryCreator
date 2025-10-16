@@ -96,11 +96,16 @@ elseif (${IncludeWhatYouUseCheck})
 	message(WARNING "Cannot find Include What You Use program.")
 endif()
 
+find_program(GRAPHVIZ_DOT_EXECUTABLE NAMES dot)
+
+if (GRAPHVIZ_DOT_EXECUTABLE)
 # build graph generation
-add_custom_target(graph_generation ALL
-	COMMAND	${CMAKE_COMMAND} -S ${CMAKE_CURRENT_SOURCE_DIR} -B ${CMAKE_CURRENT_BINARY_DIR} --graphviz="build_graph/${PROJECT_NAME}_graph.dot"
-	COMMAND dot -Tpng -o "build_graph/graph_of_build.png" "build_graph/${PROJECT_NAME}_graph.dot"
-	WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+	add_custom_target(graph_generation ALL
+		COMMAND	${CMAKE_COMMAND} -S ${CMAKE_CURRENT_SOURCE_DIR} -B ${CMAKE_CURRENT_BINARY_DIR}
+			--graphviz="build_graph/${PROJECT_NAME}_graph.dot"
+		COMMAND ${GRAPHVIZ_DOT_EXECUTABLE} -Tpng -o "build_graph/graph_of_build.png" "build_graph/${PROJECT_NAME}_graph.dot"
+		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+endif()
 
 
 # =========== INSTALLING AND PACKAGING ===========
