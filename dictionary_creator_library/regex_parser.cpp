@@ -1,31 +1,30 @@
 #include "regex_parser.h"
 
-#if __has_include(<pcre.h>) && USING_PCRE_FOR_REGEX_PARSING
-	#include <pcre.h>
+#if __has_include(<pcre2.h>) && PCRE2_CODE_UNIT_WIDTH == 8
+	#include <pcre2.h>
 	#define PCRE_IS_AVAILABLE
 #endif
 
-
 #ifdef PCRE_IS_AVAILABLE
 constexpr size_t default_output_vector_size = 27;
-constexpr int default_pcre_compile_options = PCRE_UTF8 | PCRE_UCP;
+constexpr int default_pcre_compile_options = PCRE2_UTF | PCRE2_UCP;
 constexpr int default_pcre_exec_options = 0;
-constexpr unsigned char* const default_pcre_compile_table_ptr = nullptr;
-constexpr pcre_extra* const default_pcre_exec_extra = nullptr;
+////constexpr unsigned char* const default_pcre_compile_table_ptr = nullptr;
+//constexpr pcre_extra* const default_pcre_exec_extra = nullptr;
 
 struct pcre_parser::RegexParser::Impl
 {
-	const char* error{ nullptr };
-	int error_offset{ 0 };
-	const unsigned char* table_pointer{ default_pcre_compile_table_ptr };
-	pcre* regex;
+	int error{ 0 };
+	PCRE2_SIZE error_offset{ 0 };
+	////const unsigned char* table_pointer{ default_pcre_compile_table_ptr };
+	pcre2_code* regex;
 
 	Impl(const char *pattern);
 };
 
 pcre_parser::RegexParser::Impl::Impl(const char *pattern)
 	:
-	regex{ pcre_compile(pattern, default_pcre_compile_options, &error, &error_offset, table_pointer) }
+	regex{ pcre2_compile(reinterpret_cast<PCRE2_SPTR8>(pattern), PCRE2_ZERO_TERMINATED, default_pcre_compile_options, &error, &error_offset, /*table_pointer*/ nullptr)}
 {}
 #else
 struct pcre_parser::RegexParser::Impl
@@ -60,27 +59,20 @@ pcre_parser::RegexParser &pcre_parser::RegexParser::operator=(pcre_parser::Regex
 
 int pcre_parser::RegexParser::process_pcre_exec(const std::string &source, int start_offset, std::vector<int> &outputs) const
 {
-	int result = 0;
-	do
-	{
-		result = pcre_exec(impl->regex, default_pcre_exec_extra,
-			source.data(), static_cast<int>(source.size()),
-			start_offset, default_pcre_exec_options, 
-			outputs.data(), static_cast<int>(outputs.size()));
+	pcre2_match_data* match_data = pcre2_match_data_create_from_pattern_8(impl->regex, nullptr);
+	int result = pcre2_match(impl->regex,
+		reinterpret_cast<PCRE2_SPTR8>(source.data()), source.size(),
+		start_offset, default_pcre_exec_options,
+		match_data, nullptr);
 
-		if (result == 0)
-		{
-			outputs.resize(outputs.size() * 2);
-		}
-	}
-	while (result == 0);
+	PCRE2_SIZE* raw_outputs = pcre2_get_ovector_pointer(match_data);
+	if (!raw_outputs || (result <= 0 && result != PCRE2_ERROR_NOMATCH))
+		throw std::runtime_error("Matching of regular expression failed");
 
-	if (result < 0 && result != PCRE_ERROR_NOMATCH)
-	{
-		std::string error_message{ "Matching of regular expression failed, error #" };
-		error_message.append(std::to_string(result));
-		throw std::runtime_error(error_message);
-	}
+	const auto match_number = pcre2_get_ovector_count(match_data);
+	outputs.resize(match_number);
+	for (size_t i = 0; i != match_number; ++i)
+		outputs[i] = static_cast<int>(raw_outputs[i]);
 
 	return result;
 }
@@ -91,23 +83,19 @@ std::string pcre_parser::RegexParser::single_match(const std::string &source, in
 
 	auto res = process_pcre_exec(source, start_offset, outputs);
 
-	if (res == PCRE_ERROR_NOMATCH)
-	{
+	if (res == PCRE2_ERROR_NOMATCH)
 		return {};
-	}
 	else
-	{
 		return source.substr(outputs[0], outputs[1] - outputs[0]);
-	}
 }
 
 pcre_parser::matches pcre_parser::RegexParser::all_matches(const std::string &source, int start_offset) const
 {
 	matches every_match;
-	std::vector<int> outputs(default_output_vector_size);
+	std::vector<int> outputs(default_output_vector_size, 0);
 
 	int found = 0;
-	while (found != PCRE_ERROR_NOMATCH)
+	while (found != PCRE2_ERROR_NOMATCH)
 	{
 		if (outputs[0] < outputs[1])
 		{
@@ -127,12 +115,12 @@ pcre_parser::matches pcre_parser::RegexParser::all_matches(const std::string &so
 // uncomment following assert to disallow a nonfunctional execution
 //static_assert(false, "PCRE IS NOT AVAILABLE");
 
-std::string pcre_parser::RegexParser::single_match(const std::string &source, int start_offset) const
+std::string pcre_parser::RegexParser::single_match(const std::string &, int) const
 {
 	return "PCRE is not available";
 }
 
-pcre_parser::matches pcre_parser::RegexParser::all_matches(const std::string &source, int start_offset) const
+pcre_parser::matches pcre_parser::RegexParser::all_matches(const std::string &, int) const
 {
 	return { "PCRE is not available" };
 }

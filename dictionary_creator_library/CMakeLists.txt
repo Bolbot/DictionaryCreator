@@ -1,7 +1,7 @@
 # ========== THIRD-PARTY ==========
 
 find_package(CURL CONFIG QUIET)                         # for connections library
-find_package(unofficial-pcre CONFIG QUIET)              # for regex_parser library
+find_package(pcre2 CONFIG QUIET)                        # for regex_parser library
 
 include(FetchContent)
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
@@ -25,13 +25,14 @@ endif ()
 
 add_library(regex_parser regex_parser.cpp)
 
-if (unofficial-pcre_FOUND)
-	target_link_libraries(regex_parser PRIVATE unofficial::pcre::pcre DictionaryCreator_compiler_flags)
-	target_compile_definitions(regex_parser PRIVATE "USING_PCRE_FOR_REGEX_PARSING")
+if (pcre2_FOUND)
+	message(WARNING "PCRE2 was found right away. Suspiciously successful")
 else ()
-	# regex_parser expects USING_PCRE_FOR_REGEX_PARSING defined from outside; by skipping it, we make it fallback to no-op
-	message(WARNING "Failed to find unofficial-pcre. The regex_parser library will be no-op")
+	FetchContent_Declare(pcre URL https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.46/pcre2-10.46.tar.gz)
+	FetchContent_MakeAvailable(pcre)
 endif()
+target_link_libraries(regex_parser PRIVATE pcre2-8 DictionaryCreator_compiler_flags)
+target_compile_definitions(regex_parser PRIVATE "PCRE2_CODE_UNIT_WIDTH=8")
 
 
 add_library(dictionary_definer dictionary_definer.cpp)
