@@ -4,9 +4,7 @@ find_package(CURL CONFIG QUIET)                         # for connections librar
 find_package(unofficial-pcre CONFIG QUIET)              # for regex_parser library
 
 include(FetchContent)
-FetchContent_Declare(json								# for dictionary_definer library
-	GIT_REPOSITORY	git@github.com:Bolbot/nlohmann_json_cmake_fetchcontent.git
-	GIT_TAG		e203a1f0e31674e11f41fe4afc964a20fd12c50d)
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
 FetchContent_MakeAvailable(json)
 
 set(Boost_NO_BOOST_CMAKE ON)
