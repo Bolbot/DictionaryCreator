@@ -59,10 +59,10 @@ void manage_dictionary()
 {
 	auto input_file_path = get_input_file_path();
 		
-	dictionary_creator::DictionaryManager dm(dictionary_creator::Language::Russian);
+	dictionary_creator::DictionaryManager dm(dictionary_creator::Language::English);
 
 	dm.add_input_file(input_file_path);
-	dm.lookup_or_add_word(u8"антропологический");
+	dm.lookup_or_add_word(u8"Antidisestablishmentarianism");
 
 	try
 	{
