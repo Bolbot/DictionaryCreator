@@ -105,34 +105,38 @@ add_custom_target(graph_generation ALL
 
 # =========== INSTALLING AND PACKAGING ===========
 
-install(TARGETS RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-if (CMAKE_SYSTEM_NAME STREQUAL Windows)
-	install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}/$<CONFIG>/"
-		DESTINATION ${CMAKE_INSTALL_BINDIR} FILES_MATCHING PATTERN "*.dll")
-endif()
+option(InstallAndPackage OFF)
 
-include(InstallRequiredSystemLibraries)
-set(CPACK_PACKAGE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
-set(CPACK_PACKAGE_VERSION_MINOR ${PROJECT_VERSION_MINOR})
-set(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
-set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/License.txt")
-include(CPack)
+if (InstallAndPackage)
+	install(TARGETS RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+	if (CMAKE_SYSTEM_NAME STREQUAL Windows)
+		install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_BINDIR}/$<CONFIG>/"
+			DESTINATION ${CMAKE_INSTALL_BINDIR} FILES_MATCHING PATTERN "*.dll")
+	endif()
 
-install(TARGETS DictionaryCreator_compiler_flags DictionaryCreatorConsoleApp
-	EXPORT DictionaryCreatorTargets
-	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
-install(EXPORT DictionaryCreatorTargets FILE DictionaryCreatorTargets.cmake DESTINATION "${CMAKE_INSTALL_LIBDIR}/DictionaryCreator/cmake")
+	include(InstallRequiredSystemLibraries)
+	set(CPACK_PACKAGE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+	set(CPACK_PACKAGE_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+	set(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
+	set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/License.txt")
+	include(CPack)
 
-include(CMakePackageConfigHelpers)
-configure_package_config_file(
-	"${CMAKE_CURRENT_SOURCE_DIR}/DictionaryCreatorConfig.cmake.in"
-	"${CMAKE_CURRENT_BINARY_DIR}/DictionaryCreatorConfig.cmake"
-	INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/DictionaryCreator/cmake"
-	)
-write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/DictionaryCreatorConfigVersion.cmake"
-	VERSION ${PROJECT_VERSION}
-	COMPATIBILITY SameMajorVersion)
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/DictionaryCreatorConfig.cmake" "${CMAKE_CURRENT_BINARY_DIR}/DictionaryCreatorConfigVersion.cmake"
-	DESTINATION "${CMAKE_INSTALL_LIBDIR}/DictionaryCreator/cmake")
+	install(TARGETS DictionaryCreator_compiler_flags DictionaryCreatorConsoleApp
+		EXPORT DictionaryCreatorTargets
+		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+	install(EXPORT DictionaryCreatorTargets FILE DictionaryCreatorTargets.cmake DESTINATION "${CMAKE_INSTALL_LIBDIR}/DictionaryCreator/cmake")
+
+	include(CMakePackageConfigHelpers)
+	configure_package_config_file(
+		"${CMAKE_CURRENT_SOURCE_DIR}/DictionaryCreatorConfig.cmake.in"
+		"${CMAKE_CURRENT_BINARY_DIR}/DictionaryCreatorConfig.cmake"
+		INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/DictionaryCreator/cmake"
+		)
+	write_basic_package_version_file("${CMAKE_CURRENT_BINARY_DIR}/DictionaryCreatorConfigVersion.cmake"
+		VERSION ${PROJECT_VERSION}
+		COMPATIBILITY SameMajorVersion)
+	install(FILES "${CMAKE_CURRENT_BINARY_DIR}/DictionaryCreatorConfig.cmake" "${CMAKE_CURRENT_BINARY_DIR}/DictionaryCreatorConfigVersion.cmake"
+		DESTINATION "${CMAKE_INSTALL_LIBDIR}/DictionaryCreator/cmake")
+endif ()
