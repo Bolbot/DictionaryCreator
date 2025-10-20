@@ -1,9 +1,9 @@
 #include "connections.h"
 
-#include <string>
+#if CURL_IS_AVALIABLE && __has_include(<curl/curl.h>)
 
-
-#ifdef CURL_IS_AVALIABLE
+#include <curl/curl.h>
+#include <iostream>
 
 struct CurlGlobalHandle
 {
@@ -82,23 +82,16 @@ private:
 	std::string response;
 };
 
-#else
-
-class CurlEasyHandle
-{
-public:
-	CurlEasyHandle(const char *str)
-	{}
-	std::string get_response() const noexcept
-	{
-		return "Curl is unavailable\n";
-	}
-};
-
-#endif // CURL_IS_AVALIABLE
-
-
-std::string connections::get(const char *URI)
+std::string connections::get(const char* URI)
 {
 	return CurlEasyHandle(URI).get_response();
 }
+
+#else
+
+std::string connections::get(const char*)
+{
+	return "Curl is not available";
+}
+
+#endif // CURL_IS_AVALIABLE
