@@ -57,6 +57,8 @@ add_library(DictionaryCreator ALIAS dictionary_manager)
 set_target_properties(dictionary_manager dictionary_creator dictionary dictionary_entry dictionary_definer 
 	PROPERTIES FOLDER dictionary_creator)
 
+set_target_properties(regex_parser pcre2-8-static pcre2-posix-static pcre2posix_test pcre2grep pcre2test PROPERTIES FOLDER regular_expressions)
+
 option (SERIALIZE OFF)
 if (Boost_FOUND AND SERIALIZE)
 	target_link_libraries(dictionary_definer PRIVATE Boost::serialization)
