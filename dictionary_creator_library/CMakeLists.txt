@@ -57,21 +57,21 @@ add_library(DictionaryCreator ALIAS dictionary_manager)
 set_target_properties(dictionary_manager dictionary_creator dictionary dictionary_entry dictionary_definer 
 	PROPERTIES FOLDER dictionary_creator)
 
-if (Boost_FOUND)
+option (SERIALIZE OFF)
+if (Boost_FOUND AND SERIALIZE)
 	target_link_libraries(dictionary_definer PRIVATE Boost::serialization)
 	target_link_libraries(dictionary_entry   PRIVATE Boost::serialization)
 	target_link_libraries(dictionary         PRIVATE Boost::serialization)
 	target_link_libraries(dictionary_creator PRIVATE Boost::serialization)
 	target_link_libraries(dictionary_manager PRIVATE Boost::serialization)
 else ()
-	message(WARNING "Failed to find Boost, the serialization will be no-op")
+	message(WARNING "Serialization will be no-op (Found Boost ${Boost_FOUND}\tSERIALIZE option ${SERIALIZE})")
 	target_compile_definitions(dictionary_definer PRIVATE "BOOST_UNAVAILABLE")
 	target_compile_definitions(dictionary_entry   PRIVATE "BOOST_UNAVAILABLE")
 	target_compile_definitions(dictionary         PRIVATE "BOOST_UNAVAILABLE")
 	target_compile_definitions(dictionary_creator PRIVATE "BOOST_UNAVAILABLE")
 	target_compile_definitions(dictionary_manager PUBLIC  "BOOST_UNAVAILABLE")		# required by DictionaryCreatorConsoleApp
 endif()
-
 
 # ========== INSTALLATION ==========
 
