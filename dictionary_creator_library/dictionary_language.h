@@ -200,7 +200,7 @@ namespace dictionary_creator
 		}
 	}
 
-	const std::vector<language_code_t> language_codes
+	const std::vector<std::string> language_codes
 	{
 		u8"", u8"en", u8"fr", u8"ru", u8"de"
 	};

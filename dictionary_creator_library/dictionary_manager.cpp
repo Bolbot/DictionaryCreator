@@ -2,6 +2,8 @@
 
 #include "dictionary_definer.h"
 
+#include <cstring>
+
 dictionary_creator::DictionaryManager::DictionaryManager(dictionary_creator::Language language) :
 	definer{ [language] (dictionary_creator::utf8_string word) { return define_word(std::move(word), language); } },
 	dictionary{ language },
@@ -206,7 +208,9 @@ void dictionary_creator::DictionaryManager::save_dictionary() const
 		throw std::runtime_error("Saving failed, coudn't write to that file");
 }
 
+#ifdef _WIN32
 #pragma warning(disable: 4702)
+#endif
 dictionary_creator::DictionaryManager dictionary_creator::load_dictionary([[ maybe_unused ]] dictionary_creator::utf8_string file_name)
 {
 	dictionary_creator::Dictionary acquired_dictionary(dictionary_creator::Language::Uninitialized);
