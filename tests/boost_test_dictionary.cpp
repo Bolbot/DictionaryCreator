@@ -49,7 +49,7 @@ BOOST_AUTO_TEST_SUITE(dictionary_alltogether)
 		dictionary_creator::Dictionary rus;
 	};
 
-	auto fake_definer = [] (auto whatever)
+	auto fake_definer = [] (...)
 	{
 		dictionary_creator::definitions_t definitions;
 

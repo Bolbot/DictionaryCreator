@@ -14,7 +14,7 @@ void simple_tests::tests(const char *program_name)
 	std::cout << "Tests for " << program_name << std::endl;
 
 	simple_tests::test_connections();
-/*
+
 	simple_tests::test_entry();
 
 	simple_tests::test_dictionary();
@@ -32,7 +32,6 @@ void simple_tests::tests(const char *program_name)
 	simple_tests::test_one_line_parser();
 
 	simple_tests::test_serialization();
-*/
 }
 
 void simple_tests::test_connections()
@@ -82,7 +81,7 @@ void simple_tests::test_entry()
 {
 	std::cout << "Testing Entry class\n";
 
-	dictionary_creator::definer_t definer = [] (dictionary_creator::utf8_string word) -> dictionary_creator::definitions_t
+	dictionary_creator::definer_t definer = [] (dictionary_creator::utf8_string) -> dictionary_creator::definitions_t
 	{
 		dictionary_creator::definitions_t definitions;
 		definitions[u8"Noun"].emplace(u8"Definition as a noun");
@@ -930,9 +929,9 @@ void simple_tests::test_serialization()
 	std::cout << "\nThe end." << std::endl;
 }
 
-int main(int argc, char **argv)
+int main([[ maybe_unused ]] int argc, [[ maybe_unused ]] char **argv)
 {
-	simple_tests::tests("Dictionary creator and its' features");
+	simple_tests::tests("Obsolete ad-hoc testing suite for DictionaryCreator");
 
 	return 0;
 }

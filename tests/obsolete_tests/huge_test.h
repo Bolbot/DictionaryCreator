@@ -1,5 +1,4 @@
-#ifndef __HUGE_TEST_H__
-#define __HUGE_TEST_H__
+#pragma once
 
 #include "dictionary_manager.h"
 #include <set>
@@ -10,7 +9,6 @@
 
 namespace huge_test
 {
-	/*
 	void dm_creation();
 
 	void special_cases();
@@ -30,7 +28,4 @@ namespace huge_test
 
 		return std::chrono::duration_cast<TimeUnit>(after - before);
 	}
-	*/
 }
-
-#endif

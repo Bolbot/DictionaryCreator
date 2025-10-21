@@ -1,5 +1,4 @@
-#ifndef __SIMPLE_TESTS_H__
-#define __SIMPLE_TESTS_H__
+#pragma once
 
 #include <iostream>
 #include <string>
@@ -43,5 +42,3 @@ namespace simple_tests
 	void test_serialization();
 
 }
-
-#endif

@@ -42,4 +42,4 @@ add_boost_test(dictionary_exporter dictionary)
 add_boost_test(dictionary_creator dictionary_creator)
 add_boost_test(dictionary_manager dictionary_manager)
 
-#add_subdirectory(obsolete_tests)
+add_subdirectory(obsolete_tests)
