@@ -1,15 +1,12 @@
 # ========== THIRD-PARTY ==========
 
-find_package(CURL CONFIG QUIET)                         # for connections library
-find_package(pcre2 CONFIG QUIET)                        # for regex_parser library
-
-include(FetchContent)
-FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
-FetchContent_MakeAvailable(json)
+find_package(CURL REQUIRED)                         # for connections library
+find_package(pcre2 REQUIRED)                        # for regex_parser library
+find_package(nlohmann_json)                         # for dictionary_definer library
 
 set(Boost_NO_BOOST_CMAKE ON)
 set(Boost_USE_MULTITHREADED ON)
-find_package(Boost COMPONENTS serialization CONFIG QUIET)					# for almost every dictionary library
+find_package(Boost COMPONENTS serialization CONFIG QUIET)  # SERIALIZATION is optional and off by default
 
 
 # ========== DECLARATIONS ==========
@@ -24,16 +21,8 @@ else ()
 endif ()
 
 add_library(regex_parser regex_parser.cpp)
-
-if (pcre2_FOUND)
-	message(WARNING "PCRE2 was found right away. Suspiciously successful")
-else ()
-	FetchContent_Declare(pcre URL https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.44/pcre2-10.44.tar.gz)
-	FetchContent_MakeAvailable(pcre)
-endif()
-target_link_libraries(regex_parser PRIVATE pcre2-8 DictionaryCreator_compiler_flags)
+target_link_libraries(regex_parser PRIVATE PCRE2::8BIT DictionaryCreator_compiler_flags)
 target_compile_definitions(regex_parser PRIVATE "PCRE2_CODE_UNIT_WIDTH=8")
-
 
 add_library(dictionary_definer dictionary_definer.cpp)
 target_link_libraries(dictionary_definer PRIVATE nlohmann_json::nlohmann_json connections DictionaryCreator_compiler_flags)
@@ -57,10 +46,11 @@ add_library(DictionaryCreator ALIAS dictionary_manager)
 set_target_properties(dictionary_manager dictionary_creator dictionary dictionary_entry dictionary_definer 
 	PROPERTIES FOLDER dictionary_creator)
 
-set_target_properties(regex_parser pcre2-8-static pcre2-posix-static pcre2posix_test pcre2grep pcre2test PROPERTIES FOLDER regular_expressions)
 
-option (SERIALIZE OFF)
-if (Boost_FOUND AND SERIALIZE)
+# ========== SERIALIZATION FEATURE ==========
+
+option (SERIALIZATION OFF)
+if (Boost_FOUND AND SERIALIZATION)
 	target_link_libraries(dictionary_definer PRIVATE Boost::serialization)
 	target_link_libraries(dictionary_entry   PRIVATE Boost::serialization)
 	target_link_libraries(dictionary         PRIVATE Boost::serialization)
@@ -75,16 +65,19 @@ else ()
 	target_compile_definitions(dictionary_manager PUBLIC  "BOOST_UNAVAILABLE")		# required by DictionaryCreatorConsoleApp
 endif()
 
+
 # ========== INSTALLATION ==========
 
-install(FILES dictionary_manager.h dictionary_entry.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(TARGETS dictionary_manager dictionary_definer dictionary_creator dictionary regex_parser dictionary_entry connections nlohmann_json
-	EXPORT DictionaryCreatorTargets
-	ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-	RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
-set_target_properties(dictionary_manager dictionary_definer dictionary_creator dictionary regex_parser dictionary_entry connections
-	PROPERTIES
-		INSTALL_RPATH $ORIGIN
-		VERSION ${PROJECT_VERSION}
-		SOVERSION ${PROJECT_VERSION_MAJOR})
+if (INSTALL_AND_PACKAGE)
+	install(FILES dictionary_manager.h dictionary_entry.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+	install(TARGETS dictionary_manager dictionary_definer dictionary_creator dictionary regex_parser dictionary_entry connections nlohmann_json::nlohmann_json
+		EXPORT DictionaryCreatorTargets
+		ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
+	set_target_properties(dictionary_manager dictionary_definer dictionary_creator dictionary regex_parser dictionary_entry connections
+		PROPERTIES
+			INSTALL_RPATH $ORIGIN
+			VERSION ${PROJECT_VERSION}
+			SOVERSION ${PROJECT_VERSION_MAJOR})
+endif()

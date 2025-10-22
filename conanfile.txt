@@ -1,0 +1,12 @@
+[requires]
+pcre2/10.44
+nlohmann_json/3.12.0
+libcurl/8.16.0
+boost/1.85.0
+
+[generators]
+CMakeDeps
+CMakeToolchain
+
+[layout]
+cmake_layout

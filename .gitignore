@@ -7,3 +7,4 @@ benchmark_results/
 Saved dictionaries/
 tests/inputs/
 tests/outputs/
+CMakeUserPresets.json
