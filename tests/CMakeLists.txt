@@ -29,13 +29,19 @@ function(add_boost_test FEATURENAME)
 	set_property(TARGET boost_test_${FEATURENAME} PROPERTY FOLDER "tests/boost")
 endfunction()
 
+# aux libraries, external to dictionary creator
 add_boost_test(regex_parser regex_parser console_fs_manager)
 add_boost_test(connections connections)
+
+# core dictionary classes
 add_boost_test(dictionary_entry dictionary_entry)
+find_package(nlohmann_json)                         # for dictionary_definer library
 add_boost_test(dictionary_definer dictionary_definer)
 target_link_libraries(boost_test_dictionary_definer PRIVATE nlohmann_json::nlohmann_json)
-add_boost_test(sorters dictionary_entry dictionary dictionary_definer)
 add_boost_test(dictionary dictionary)
+
+# auxiliary classes
+add_boost_test(sorters dictionary_entry dictionary dictionary_definer)
 # following wokaround is necessary since -wno-error=pessimizing-move and -wno-pessimizing-move gives no effect
 target_compile_options(boost_test_dictionary PRIVATE $<$<COMPILE_LANG_AND_ID:CXX,AppleClang,ARMClang,Clang>:-w>)
 add_boost_test(dictionary_exporter dictionary)
