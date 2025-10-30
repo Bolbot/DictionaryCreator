@@ -20,12 +20,16 @@ struct pcre_parser::RegexParser::Impl
 	pcre2_code* regex;
 
 	Impl(const char *pattern);
+	~Impl();
 };
 
 pcre_parser::RegexParser::Impl::Impl(const char *pattern)
-	:
-	regex{ pcre2_compile(reinterpret_cast<PCRE2_SPTR8>(pattern), PCRE2_ZERO_TERMINATED, default_pcre_compile_options, &error, &error_offset, /*table_pointer*/ nullptr)}
+	: regex{ pcre2_compile(reinterpret_cast<PCRE2_SPTR8>(pattern), PCRE2_ZERO_TERMINATED, default_pcre_compile_options, &error, &error_offset, /*table_pointer*/ nullptr) }
 {}
+pcre_parser::RegexParser::Impl::~Impl()
+{
+	pcre2_code_free(regex);
+}
 #else
 struct pcre_parser::RegexParser::Impl
 {
@@ -59,7 +63,16 @@ pcre_parser::RegexParser &pcre_parser::RegexParser::operator=(pcre_parser::Regex
 
 int pcre_parser::RegexParser::process_pcre_exec(const std::string &source, int start_offset, std::vector<int> &outputs) const
 {
-	pcre2_match_data* match_data = pcre2_match_data_create_from_pattern_8(impl->regex, nullptr);
+	class match_data_handle
+	{
+	public:
+		explicit match_data_handle(const pcre2_code* code) : pointer{ pcre2_match_data_create_from_pattern_8(code, nullptr) } {}
+		~match_data_handle() { pcre2_match_data_free(pointer); }
+		operator pcre2_match_data* () const noexcept { return pointer; }
+	private:
+		pcre2_match_data* pointer;
+	} match_data(impl->regex);
+
 	int result = pcre2_match(impl->regex,
 		reinterpret_cast<PCRE2_SPTR8>(source.data()), source.size(),
 		start_offset, default_pcre_exec_options,
