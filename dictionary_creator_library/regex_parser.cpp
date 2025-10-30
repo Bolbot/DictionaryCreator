@@ -69,9 +69,10 @@ int pcre_parser::RegexParser::process_pcre_exec(const std::string &source, int s
 	if (!raw_outputs || (result <= 0 && result != PCRE2_ERROR_NOMATCH))
 		throw std::runtime_error("Matching of regular expression failed");
 
-	const auto match_number = pcre2_get_ovector_count(match_data);
-	outputs.resize(match_number);
-	for (size_t i = 0; i != match_number; ++i)
+	const auto match_pairs_number = pcre2_get_ovector_count(match_data);		// pairs of begin and end of matches alternately
+	if (outputs.size() < match_pairs_number * 2)
+		outputs.resize(match_pairs_number * 2);
+	for (size_t i = 0; i != match_pairs_number * 2; ++i)
 		outputs[i] = static_cast<int>(raw_outputs[i]);
 
 	return result;
