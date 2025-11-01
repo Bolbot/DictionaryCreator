@@ -52,3 +52,11 @@ These features are optional and disabled by default. To enable them, either set 
 * BUILD_TESTING enables unit tests for dictionary creator library (requires Boost)
 * INSTALL_AND_PACKAGE creates installers and prepares dictionary creator for export as a CMake target
 * SERIALIZATION enables the serialization, i.e. saving/loading the dictionaries from the file system
+
+### Troubleshooting
+
+If it skips the build of some binaries or starts to print obscure messages, try the following steps:
+
+* Delete CMakeUserPresets.json from your source directory
+* Delete the entire *build* directory
+* Rerun the whole building routine

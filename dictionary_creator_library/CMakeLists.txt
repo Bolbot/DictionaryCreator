@@ -55,14 +55,14 @@ if (Boost_FOUND AND SERIALIZATION)
 	target_link_libraries(dictionary_entry   PRIVATE Boost::serialization)
 	target_link_libraries(dictionary         PRIVATE Boost::serialization)
 	target_link_libraries(dictionary_creator PRIVATE Boost::serialization)
-	target_link_libraries(dictionary_manager PRIVATE Boost::serialization)
+	target_link_libraries(dictionary_manager PUBLIC Boost::serialization)               # required by DictionaryCreatorConsoleApp
 else ()
 	message(WARNING "Serialization will be no-op (Found Boost ${Boost_FOUND}\tSERIALIZE option ${SERIALIZE})")
 	target_compile_definitions(dictionary_definer PRIVATE "BOOST_UNAVAILABLE")
 	target_compile_definitions(dictionary_entry   PRIVATE "BOOST_UNAVAILABLE")
 	target_compile_definitions(dictionary         PRIVATE "BOOST_UNAVAILABLE")
 	target_compile_definitions(dictionary_creator PRIVATE "BOOST_UNAVAILABLE")
-	target_compile_definitions(dictionary_manager PUBLIC  "BOOST_UNAVAILABLE")		# required by DictionaryCreatorConsoleApp
+	target_compile_definitions(dictionary_manager PUBLIC  "BOOST_UNAVAILABLE")          # required by DictionaryCreatorConsoleApp
 endif()
 
 

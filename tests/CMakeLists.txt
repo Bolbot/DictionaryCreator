@@ -46,6 +46,9 @@ add_boost_test(sorters dictionary_entry dictionary dictionary_definer)
 target_compile_options(boost_test_dictionary PRIVATE $<$<COMPILE_LANG_AND_ID:CXX,AppleClang,ARMClang,Clang>:-w>)
 add_boost_test(dictionary_exporter dictionary)
 add_boost_test(dictionary_creator dictionary_creator)
-add_boost_test(dictionary_manager dictionary_manager)
+
+if (SERIALIZATION)
+	add_boost_test(dictionary_manager dictionary_manager)
+endif()
 
 add_subdirectory(obsolete_tests)
