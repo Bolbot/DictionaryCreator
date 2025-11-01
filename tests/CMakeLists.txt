@@ -36,8 +36,7 @@ add_boost_test(connections connections)
 # core dictionary classes
 add_boost_test(dictionary_entry dictionary_entry)
 find_package(nlohmann_json)                         # for dictionary_definer library
-add_boost_test(dictionary_definer dictionary_definer)
-target_link_libraries(boost_test_dictionary_definer PRIVATE nlohmann_json::nlohmann_json)
+add_boost_test(dictionary_definer dictionary_definer nlohmann_json::nlohmann_json)
 add_boost_test(dictionary dictionary)
 
 # auxiliary classes

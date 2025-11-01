@@ -1,21 +1,11 @@
-#ifndef __DICTIONARY_CREATOR_H__
-#define __DICTIONARY_CREATOR_H__
-
-// Stupid windows.h is messing with min name, so following disables their dumb macros
-#define NOMINMAX
-
-#include <set>
-#include <map>
-#include <regex>
-#include <queue>
-#include <utility>
-#include <fstream>
-#include <algorithm>
-#include <memory>
+#pragma once
 
 #include "regex_parser.h"
 #include "dictionary.h"
-#include "dictionary_language.h"
+
+#include <queue>
+#include <istream>
+#include <memory>
 
 namespace dictionary_creator
 {
@@ -45,6 +35,3 @@ namespace dictionary_creator
 		pcre_parser::RegexParser words_extractor;
 	};
 }
-
-
-#endif

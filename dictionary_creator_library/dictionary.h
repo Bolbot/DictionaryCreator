@@ -1,20 +1,13 @@
 #pragma once
 
-#define NOMINMAX
+#include "dictionary_types.h"
+#include "dictionary_entry.h"
+#include "dictionary_language.h"
 
 #include <vector>
 #include <iterator>
-#include <exception>
-#include <algorithm>
-#include <istream>
 #include <ostream>
-#include <iostream>
-#include <iomanip>
-#include <cctype>
 #include <array>
-#include <type_traits>
-#include <functional>
-#include <cmath>
 
 #ifndef BOOST_UNAVAILABLE
 #include <boost/serialization/shared_ptr.hpp>
@@ -22,9 +15,6 @@
 #include <memory>
 #endif
 
-#include "dictionary_types.h"
-#include "dictionary_entry.h"
-#include "dictionary_language.h"
 
 namespace dictionary_creator
 {
@@ -225,6 +215,8 @@ namespace dictionary_creator
 	Dictionary operator*(const Dictionary &left, const Dictionary &right);
 
 	size_t random_number(size_t max = maximum_rand_output);
+
+	// TODO: Exporter belongs to a separate project, albeit a small one
 
 	enum class ExportOptions : size_t
 	{

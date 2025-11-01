@@ -1,14 +1,5 @@
 #pragma once
 
-#include <iostream>
-#include <string>
-
-#include "dictionary.h"
-#include "connections.h"
-#include "dictionary_entry.h"
-#include "dictionary_creator.h"
-#include "dictionary_manager.h"
-
 namespace simple_tests
 {
 	template <typename ... Args>

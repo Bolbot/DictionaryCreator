@@ -3,6 +3,16 @@
 #include "dictionary_definer.h"
 
 #include <cstring>
+#include <filesystem>
+#include <iostream>
+#include <sstream>
+
+#ifndef BOOST_UNAVAILABLE
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/serialization/export.hpp>
+#endif // BOOST_UNAVAILABLE
+
 
 dictionary_creator::DictionaryManager::DictionaryManager(dictionary_creator::Language language) :
 	definer{ [language] (dictionary_creator::utf8_string word) { return define_word(std::move(word), language); } },

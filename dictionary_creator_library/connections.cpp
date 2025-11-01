@@ -2,8 +2,9 @@
 
 #if CURL_IS_AVALIABLE && __has_include(<curl/curl.h>)
 
-#include <curl/curl.h>
 #include <iostream>
+
+#include <curl/curl.h>
 
 struct CurlGlobalHandle
 {

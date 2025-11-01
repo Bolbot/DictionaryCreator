@@ -2,7 +2,8 @@
 #include <boost/test/unit_test.hpp>
 
 #include "dictionary_definer.h"
-#include "dictionary_definer_impl.h"
+#include "json_parser.h"
+#include "json_parser_impl.h"
 
 BOOST_AUTO_TEST_SUITE(definer_alltogether)
 

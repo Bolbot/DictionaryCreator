@@ -1,11 +1,7 @@
-﻿#include <typeinfo>
-#include <chrono>
-#include <locale>
-#include <cstring>
-
-#include "dictionary_manager.h"
+﻿#include "dictionary_manager.h"
 #include "fs_manager.h"
 #include "config.h"
+
 
 // GoogleAPI limits TODO:	develop a strategy for getting around the Google limit
 // 				problem: starting from some substantial amount of requests google gets exausted

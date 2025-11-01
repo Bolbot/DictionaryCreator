@@ -1,5 +1,4 @@
-#ifndef OS_SPECIFIC_FS_MANAGER_H
-#define OS_SPECIFIC_FS_MANAGER_H
+#pragma once
 
 #include <string>
 
@@ -12,5 +11,3 @@ bool regular_file(const std::string &path);
 void fix_missing_extension(std::string &path);
 
 extern const bool cin_stdio_sync;
-
-#endif

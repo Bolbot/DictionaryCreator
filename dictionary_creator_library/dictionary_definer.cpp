@@ -1,5 +1,9 @@
 #include "dictionary_definer.h"
-#include "dictionary_definer_impl.h"
+
+#include "connections.h"
+#include "json_parser.h"
+
+#include <sstream>
 
 std::string dictionary_creator::percent_encode(dictionary_creator::utf8_string string)
 {
@@ -34,8 +38,7 @@ dictionary_creator::definitions_t dictionary_creator::define_word(utf8_string wo
 	const utf8_string api_request = api_request_base + language_codes[static_cast<size_t>(language)] + u8"/" + IRI_encoded_word;
 
 	utf8_string response = connections::get(api_request.c_str());
-	auto json_object = parse_json(response);
-	dictionary_creator::definitions_t map = json_to_definitions_map(json_object);
+	dictionary_creator::definitions_t map = parse_json_to_definitions_map(response.c_str());
 
 	return map;
 }

@@ -1,14 +1,9 @@
-#ifndef __REGEX_PARSER_H__
-#define __REGEX_PARSER_H__
-
+#pragma once
 
 #include <set>
 #include <string>
 #include <vector>
-#include <sstream>
-#include <exception>
 #include <memory>
-
 
 namespace pcre_parser
 {
@@ -33,5 +28,3 @@ namespace pcre_parser
 		int process_pcre_exec(const std::string &source, int start_offset, std::vector<int> &outputs) const;
 	};
 }
-
-#endif

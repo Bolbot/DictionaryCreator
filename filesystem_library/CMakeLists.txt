@@ -6,7 +6,7 @@ else()
 	message(FATAL_ERROR "Unknown OS. Impossible to continue (for application build)")
 endif()
 
-add_library(console_fs_manager "${OS_TYPE}/fs_manager.cpp")
+add_library(console_fs_manager "${OS_TYPE}/fs_manager.cpp" "${OS_TYPE}/OS_specific_fs_manager.h" "fs_manager.h")
 target_include_directories(console_fs_manager PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/${OS_TYPE}")
 target_link_libraries(console_fs_manager PRIVATE ${PROJECT_NAME}_compiler_flags)
 set_target_properties(console_fs_manager PROPERTIES

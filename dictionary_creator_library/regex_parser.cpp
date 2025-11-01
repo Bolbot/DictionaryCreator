@@ -1,5 +1,8 @@
 #include "regex_parser.h"
 
+#include <sstream>
+#include <exception>
+
 #if __has_include(<pcre2.h>) && PCRE2_CODE_UNIT_WIDTH == 8
 	#include <pcre2.h>
 	#define PCRE_IS_AVAILABLE

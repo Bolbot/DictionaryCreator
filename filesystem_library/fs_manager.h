@@ -1,5 +1,4 @@
-#ifndef FS_MANAGER_H
-#define FS_MANAGER_H
+#pragma once
 
 // must be defined before including OS specific header as it uses it
 #ifndef OPTIONAL_DECLSPEC
@@ -8,7 +7,6 @@
 
 #include "OS_specific_fs_manager.h"
 
-#include <string>
 #include <stdexcept>
 #include <iostream>
 #include <fstream>
@@ -130,6 +128,3 @@ inline auto get_output_file_path()
 		return file_path;
 	}
 }
-
-
-#endif

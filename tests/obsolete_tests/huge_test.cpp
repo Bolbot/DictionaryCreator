@@ -1,6 +1,7 @@
 #include "huge_test.h"
 
 #include <bitset>
+#include <iostream>
 
 constexpr size_t long_words_set_size_time_consuming = 10'000;
 

@@ -1,10 +1,10 @@
 #pragma once
 
+#include "dictionary_types.h"
+
 #ifndef BOOST_UNAVAILABLE
 #include <boost/serialization/access.hpp>
 #endif
-
-#include "dictionary_types.h"
 
 namespace dictionary_creator
 {

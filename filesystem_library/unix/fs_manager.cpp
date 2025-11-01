@@ -1,8 +1,5 @@
 #include "fs_manager.h"
 
-#include <fstream>
-#include <iostream>
-#include <string>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>

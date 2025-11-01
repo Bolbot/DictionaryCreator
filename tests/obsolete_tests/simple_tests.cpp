@@ -1,5 +1,9 @@
 #include "simple_tests.h"
 
+#include "connections.h"
+#include "dictionary_manager.h"
+
+#include <iostream>
 #include <chrono>
 #include <thread>
 

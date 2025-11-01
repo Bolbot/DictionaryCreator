@@ -11,7 +11,7 @@ find_package(Boost COMPONENTS serialization CONFIG QUIET)  # SERIALIZATION is op
 
 # ========== DECLARATIONS ==========
 
-add_library(connections connections.cpp)
+add_library(connections connections.cpp connections.h)
 if (CURL_FOUND)
 	target_link_libraries(connections PRIVATE CURL::libcurl)
 	target_compile_definitions(connections PRIVATE "CURL_IS_AVALIABLE")
@@ -20,23 +20,27 @@ else ()
 	message(WARNING "Failed to find Curl. The connections library will be no-op")
 endif ()
 
-add_library(regex_parser regex_parser.cpp)
+add_library(regex_parser regex_parser.cpp regex_parser.h)
 target_link_libraries(regex_parser PRIVATE PCRE2::8BIT DictionaryCreator_compiler_flags)
 target_compile_definitions(regex_parser PRIVATE "PCRE2_CODE_UNIT_WIDTH=8")
 
-add_library(dictionary_definer dictionary_definer.cpp)
-target_link_libraries(dictionary_definer PRIVATE nlohmann_json::nlohmann_json connections DictionaryCreator_compiler_flags)
+add_library(json_parser json_parser.cpp json_parser.h json_parser_impl.h)
+target_link_libraries(json_parser PRIVATE nlohmann_json::nlohmann_json DictionaryCreator_compiler_flags)
+target_compile_definitions(json_parser PRIVATE "BOOST_UNAVAILABLE")   # json parser doesn't need boost serialization types
 
-add_library(dictionary_entry dictionary_entry.cpp)
+add_library(dictionary_definer dictionary_definer.cpp dictionary_definer.h dictionary_types.h dictionary_language.h)
+target_link_libraries(dictionary_definer PRIVATE json_parser connections DictionaryCreator_compiler_flags)
+
+add_library(dictionary_entry dictionary_entry.cpp dictionary_entry.h dictionary_types.h)
 target_link_libraries(dictionary_entry PUBLIC PRIVATE DictionaryCreator_compiler_flags)
 
-add_library(dictionary dictionary.cpp)
+add_library(dictionary dictionary.cpp dictionary.h dictionary_types.h dictionary_entry.h dictionary_language.h)
 target_link_libraries(dictionary PUBLIC dictionary_entry PRIVATE DictionaryCreator_compiler_flags)
 
-add_library(dictionary_creator dictionary_creator.cpp)
+add_library(dictionary_creator dictionary_creator.cpp dictionary_creator.h regex_parser.h dictionary.h)
 target_link_libraries(dictionary_creator PUBLIC dictionary regex_parser PRIVATE DictionaryCreator_compiler_flags)
 
-add_library(dictionary_manager dictionary_manager.cpp)
+add_library(dictionary_manager dictionary_manager.cpp dictionary_manager.h dictionary.h dictionary_creator.h)
 target_link_libraries(dictionary_manager PUBLIC dictionary_creator PRIVATE dictionary_definer DictionaryCreator_compiler_flags)
 target_include_directories(dictionary_manager PUBLIC
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>

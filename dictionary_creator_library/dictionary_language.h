@@ -1,5 +1,4 @@
-#ifndef __DICTIONARY_LANGUAGE_H__
-#define __DICTIONARY_LANGUAGE_H__
+#pragma once
 
 #include <string>
 #include <vector>
@@ -229,5 +228,3 @@ namespace dictionary_creator
 		u8"", u8"a-z", u8"a-zàâæçèéêëïîôœùûüÿ", u8"абвгдеёжзийклмнопрстуфхцчшщъыьэюя", u8"a-zäöüß"
 	};
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef OS_SPECIFIC_FS_MANAGER_H
-#define OS_SPECIFIC_FS_MANAGER_H
+#pragma once
 
 #include <string>
 
@@ -10,5 +9,3 @@ std::wstring read_user_input_line();
 bool regular_file(const std::wstring &path) noexcept;
 
 void fix_missing_extension(std::wstring &path);
-
-#endif

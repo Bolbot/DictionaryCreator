@@ -3,13 +3,7 @@
 #include "dictionary.h"
 #include "dictionary_creator.h"
 
-#include <filesystem>
-
-#ifndef BOOST_UNAVAILABLE
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/serialization/export.hpp>
-#endif // BOOST_UNAVAILABLE
+#include <fstream>
 
 // This class contains all the dictionary related features, that is
 // 	- Dictionary class to store the dictionary itself

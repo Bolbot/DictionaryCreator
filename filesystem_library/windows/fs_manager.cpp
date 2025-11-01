@@ -1,8 +1,5 @@
 #include "fs_manager.h"
 
-#include <fstream>
-#include <iostream>
-#include <string>
 #include <io.h>
 #include <Windows.h>
 #include <fcntl.h>
