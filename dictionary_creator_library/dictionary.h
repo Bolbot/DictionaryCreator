@@ -20,8 +20,6 @@ namespace dictionary_creator
 {
 	constexpr size_t maximum_rand_output = RAND_MAX;
 
-	class DictionaryExporter;
-
 	enum class ComparisonType : size_t
 	{
 		MostFrequent = 0, LeastFrequent = 1, Longest = 2,
@@ -186,14 +184,16 @@ namespace dictionary_creator
 		Dictionary &operator-=(Dictionary &&other);
 		Dictionary &operator*=(const Dictionary &other);
 		
-		friend class DictionaryExporter;
-
 		Language get_language() const noexcept;
-	private:
 
+		using default_dictionary_type = std::map<letter_type, std::set<std::shared_ptr<Entry>, DefaultEntrySorter>, string_comp>;
+		const default_dictionary_type& get_main_dictionary() const noexcept;
+		const default_dictionary_type& get_proper_nouns_dictionary() const noexcept;
+
+	private:
 		Language language;
-		std::map<letter_type, std::set<std::shared_ptr<Entry>, DefaultEntrySorter>, string_comp> dictionary;
-		std::map<letter_type, std::set<std::shared_ptr<Entry>, DefaultEntrySorter>, string_comp> proper_nouns;
+		default_dictionary_type dictionary;
+		default_dictionary_type proper_nouns;
 
 #ifndef BOOST_UNAVAILABLE
 		friend class boost::serialization::access;
@@ -215,60 +215,4 @@ namespace dictionary_creator
 	Dictionary operator*(const Dictionary &left, const Dictionary &right);
 
 	size_t random_number(size_t max = maximum_rand_output);
-
-	// TODO: Exporter belongs to a separate project, albeit a small one
-
-	enum class ExportOptions : size_t
-	{
-		Dictionary = 1,
-		ProperNouns = (1 << 1),
-
-		DefinedWords = (1 << 2),
-		UndefinedWords = (1 << 3),
-		UndefinedWarnings = (1 << 4),
-
-		OnlyOneDefinition = (1 << 5),
-		EveryPartOfSpeech = (1 << 6),
-		EncountersInText = (1 << 7),
-
-		DashedList = (1 << 8),
-		NumberedList = (1 << 9),
-
-		BasicDecorations = (1 << 10),
-		AdvancedDecorations = (1 << 11),
-
-		Frequency = (1 << 12),
-		Length = (1 << 13),
-		Ambiguousness = (1 << 14)
-	};
-
-	constexpr ExportOptions operator|(ExportOptions a, ExportOptions b)
-	{
-		return static_cast<ExportOptions>(static_cast<size_t>(a) | static_cast<size_t>(b));
-	}
-	constexpr size_t operator&(ExportOptions a, ExportOptions b)
-	{
-		return static_cast<size_t>(a) & static_cast<size_t>(b);
-	}
-
-	constexpr ExportOptions default_export_options = ExportOptions::Dictionary	
-		| ExportOptions::DefinedWords | ExportOptions::UndefinedWords 
-		| ExportOptions::EveryPartOfSpeech | ExportOptions::DashedList;
-
-	class DictionaryExporter
-	{
-	public:
-		explicit DictionaryExporter(std::ostream *output_stream = nullptr, utf8_string undefined_warning = u8"-----");
-
-		std::ostream &export_dictionary(const Dictionary &object, ExportOptions export_options = default_export_options);
-		std::ostream &export_entries(const subset_t &entries, ExportOptions export_options = default_export_options);
-
-	private:
-		void print_letter(letter_type letter, ExportOptions options);
-		void print_entry(const Entry &entry, ExportOptions options);
-		void print_empty_line(ExportOptions options);
-
-		std::ostream *output_stream;
-		utf8_string undefined_warning;
-	};
 }

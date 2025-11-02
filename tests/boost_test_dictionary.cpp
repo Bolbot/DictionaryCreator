@@ -2,6 +2,7 @@
 #include <boost/test/unit_test.hpp>
 
 #include "dictionary.h"
+#include "dictionary_exporter.h"
 
 #if defined(_MSC_VER)
 #define DELIBERATELY_SUBOPTIMAL(code)                     \

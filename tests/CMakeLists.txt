@@ -37,13 +37,13 @@ add_boost_test(connections connections)
 add_boost_test(dictionary_entry dictionary_entry)
 find_package(nlohmann_json)                         # for dictionary_definer library
 add_boost_test(dictionary_definer dictionary_definer nlohmann_json::nlohmann_json)
-add_boost_test(dictionary dictionary)
+add_boost_test(dictionary dictionary dictionary_exporter)
 
 # auxiliary classes
 add_boost_test(sorters dictionary_entry dictionary dictionary_definer)
 # following wokaround is necessary since -wno-error=pessimizing-move and -wno-pessimizing-move gives no effect
 target_compile_options(boost_test_dictionary PRIVATE $<$<COMPILE_LANG_AND_ID:CXX,AppleClang,ARMClang,Clang>:-w>)
-add_boost_test(dictionary_exporter dictionary)
+add_boost_test(dictionary_exporter dictionary_exporter dictionary)
 add_boost_test(dictionary_creator dictionary_creator)
 
 if (SERIALIZATION)

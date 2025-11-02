@@ -40,14 +40,18 @@ target_link_libraries(dictionary PUBLIC dictionary_entry PRIVATE DictionaryCreat
 add_library(dictionary_creator dictionary_creator.cpp dictionary_creator.h regex_parser.h dictionary.h)
 target_link_libraries(dictionary_creator PUBLIC dictionary regex_parser PRIVATE DictionaryCreator_compiler_flags)
 
+add_library(dictionary_exporter dictionary_exporter.cpp dictionary_exporter.h dictionary.h dictionary_types.h)
+target_link_libraries(dictionary_exporter PRIVATE DictionaryCreator_compiler_flags)
+target_compile_definitions(dictionary_exporter PRIVATE "BOOST_UNAVAILABLE")
+
 add_library(dictionary_manager dictionary_manager.cpp dictionary_manager.h dictionary.h dictionary_creator.h)
-target_link_libraries(dictionary_manager PUBLIC dictionary_creator PRIVATE dictionary_definer DictionaryCreator_compiler_flags)
+target_link_libraries(dictionary_manager PUBLIC dictionary_creator PRIVATE dictionary_definer dictionary_exporter DictionaryCreator_compiler_flags)
 target_include_directories(dictionary_manager PUBLIC
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 	$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 add_library(DictionaryCreator ALIAS dictionary_manager)
 
-set_target_properties(dictionary_manager dictionary_creator dictionary dictionary_entry dictionary_definer 
+set_target_properties(dictionary_manager dictionary_creator dictionary dictionary_entry dictionary_definer dictionary_exporter
 	PROPERTIES FOLDER dictionary_creator)
 
 

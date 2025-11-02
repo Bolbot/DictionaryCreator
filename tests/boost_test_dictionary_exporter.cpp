@@ -2,7 +2,7 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/test/tools/output_test_stream.hpp>
 
-#include "dictionary.h"
+#include "dictionary_exporter.h"
 #include <sstream>
 
 BOOST_AUTO_TEST_SUITE(exporter_alltogether)
@@ -114,5 +114,5 @@ BOOST_AUTO_TEST_SUITE(exporter_alltogether)
 
 		return true;
 	}
-	
+
 BOOST_AUTO_TEST_SUITE_END()

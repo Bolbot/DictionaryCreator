@@ -2,6 +2,7 @@
 
 #include "dictionary.h"
 #include "dictionary_creator.h"
+#include "dictionary_exporter.h"
 
 #include <fstream>
 
