@@ -3,6 +3,32 @@
 
 #include "dictionary.h"
 
+#if defined(_MSC_VER)
+#define DELIBERATELY_SUBOPTIMAL(code)                     \
+__pragma(warning(push))                                   \
+__pragma(warning(disable : 26479))                        \
+code                                                      \
+__pragma(warning(pop))
+
+
+#elif defined(__clang__)
+#define DELIBERATELY_SUBOPTIMAL(code)                     \
+#pragma clang diagnostic push                             \
+#pragma clang diagnostic ignored "-Wpessimizing-move"     \
+code                                                      \
+#pragma clang diagnostic pop
+
+
+#elif defined(__GNUC__)
+#define DELIBERATELY_SUBOPTIMAL(code)                     \
+_Pragma("GCC diagnostic push")                            \
+_Pragma("GCC diagnostic ignored \"-Wpessimizing-move\"")  \
+code                                                      \
+_Pragma("GCC diagnostic pop")
+#else
+#define DELIBERATELY_SUBOPTIMAL(code) code
+#endif
+
 BOOST_AUTO_TEST_SUITE(dictionary_alltogether)
 
 	using dictionary_creator::criteria_dependent_sorters;
@@ -180,9 +206,9 @@ BOOST_AUTO_TEST_SUITE(dictionary_alltogether)
 			auto english_longest = eng.get_top(dictionary_creator::ComparisonType::Longest, 1'000'000);
 			BOOST_TEST_CHECK(english_longest.size() == 26u);
 
-			auto shortest_criterion = criteria_dependent_sorters[static_cast<size_t>(dictionary_creator::ComparisonType::Shortest)];
+			const auto &shortest_criterion = criteria_dependent_sorters[static_cast<size_t>(dictionary_creator::ComparisonType::Shortest)];
 			BOOST_TEST_CHECK(std::is_sorted(english_shortest.begin(), english_shortest.end(), shortest_criterion));
-			auto longest_criterion = criteria_dependent_sorters[static_cast<size_t>(dictionary_creator::ComparisonType::Longest)];
+			const auto &longest_criterion = criteria_dependent_sorters[static_cast<size_t>(dictionary_creator::ComparisonType::Longest)];
 			BOOST_TEST_CHECK(std::is_sorted(english_longest.begin(), english_longest.end(), longest_criterion));
 		}
 
@@ -202,9 +228,9 @@ BOOST_AUTO_TEST_SUITE(dictionary_alltogether)
 			auto least = eng.get_top(dictionary_creator::ComparisonType::LeastAmbiguous, 1'000'000);
 			BOOST_TEST_CHECK(least.size() == 26u);
 
-			auto most_criterion = criteria_dependent_sorters[static_cast<size_t>(dictionary_creator::ComparisonType::MostAmbiguous)];
+			const auto &most_criterion = criteria_dependent_sorters[static_cast<size_t>(dictionary_creator::ComparisonType::MostAmbiguous)];
 			BOOST_TEST_CHECK(std::is_sorted(most.begin(), most.end(), most_criterion));
-			auto least_criterion = criteria_dependent_sorters[static_cast<size_t>(dictionary_creator::ComparisonType::LeastAmbiguous)];
+			const auto &least_criterion = criteria_dependent_sorters[static_cast<size_t>(dictionary_creator::ComparisonType::LeastAmbiguous)];
 			BOOST_TEST_CHECK(std::is_sorted(least.begin(), least.end(), least_criterion));
 		}
 
@@ -228,9 +254,9 @@ BOOST_AUTO_TEST_SUITE(dictionary_alltogether)
 			auto least = eng.get_top(dictionary_creator::ComparisonType::LeastFrequent, 1'000'000);
 			BOOST_TEST_CHECK(least.size() == 26u);
 
-			auto most_criterion = criteria_dependent_sorters[static_cast<size_t>(dictionary_creator::ComparisonType::MostFrequent)];
+			const auto &most_criterion = criteria_dependent_sorters[static_cast<size_t>(dictionary_creator::ComparisonType::MostFrequent)];
 			BOOST_TEST_CHECK(std::is_sorted(most.begin(), most.end(), most_criterion));
-			auto least_criterion = criteria_dependent_sorters[static_cast<size_t>(dictionary_creator::ComparisonType::LeastFrequent)];
+			const auto &least_criterion = criteria_dependent_sorters[static_cast<size_t>(dictionary_creator::ComparisonType::LeastFrequent)];
 			BOOST_TEST_CHECK(std::is_sorted(least.begin(), least.end(), least_criterion));
 		}
 
@@ -335,7 +361,7 @@ BOOST_AUTO_TEST_SUITE(dictionary_alltogether)
 	BOOST_FIXTURE_TEST_CASE(big_five, DictionaryObjects)
 	{
 		// rvalue source
-		auto get_english = [this] () -> dictionary_creator::Dictionary { auto res = eng; return std::move(res); };
+		auto get_english = [this] () -> dictionary_creator::Dictionary { auto res = eng; DELIBERATELY_SUBOPTIMAL(return std::move(res);) };
 
 		eng.add_proper_noun("Anna");
 		BOOST_TEST_CHECK(eng.total_words() == 26u);
@@ -484,7 +510,7 @@ BOOST_AUTO_TEST_SUITE(dictionary_alltogether)
 		dictionary_creator::Dictionary get_rus() const
 		{
 			auto also_rus = rus;
-			return std::move(also_rus);
+			DELIBERATELY_SUBOPTIMAL(return std::move(also_rus);)
 		}
 
 		bool contains(const dictionary_creator::Dictionary &dictionary, const dictionary_creator::utf8_string &words) const
@@ -560,7 +586,7 @@ BOOST_AUTO_TEST_SUITE(dictionary_alltogether)
 						auto res = efgh;
 						res.add_proper_noun("d");
 						res.add_proper_noun("f");
-						return std::move(res);
+						DELIBERATELY_SUBOPTIMAL(return std::move(res);)
 					}());
 
 			BOOST_TEST_INFO("proper nouns from both are affecting upon merge");
@@ -570,7 +596,7 @@ BOOST_AUTO_TEST_SUITE(dictionary_alltogether)
 
 		BOOST_TEST_INFO("merge(rvalue).merge(lvalue)");
 		auto abcdefghijkl = abcd;
-		abcdefghijkl.merge([this] { auto res = efgh; return std::move(res); }()).merge(ijkl);
+		abcdefghijkl.merge([this] { auto res = efgh; DELIBERATELY_SUBOPTIMAL(return std::move(res);) }()).merge(ijkl);
 		BOOST_TEST_CHECK(contains(abcdefghijkl, "abcdefghijkl"));
 
 		BOOST_TEST_CONTEXT("self merge")
@@ -620,7 +646,7 @@ BOOST_AUTO_TEST_SUITE(dictionary_alltogether)
 						auto res = efgh;
 						res.add_word("d");
 						res.add_proper_noun("c");
-						return std::move(res);
+						DELIBERATELY_SUBOPTIMAL(return std::move(res);)
 					}());
 
 			BOOST_TEST_INFO("proper nouns from both are affecting upon merge");
@@ -632,7 +658,7 @@ BOOST_AUTO_TEST_SUITE(dictionary_alltogether)
 		{
 			auto ijkl_ = abcdefghijkl;
 
-			ijkl_.subtract(abcd).subtract([this] { auto res = efgh; return std::move(res); }());
+			ijkl_.subtract(abcd).subtract([this] { auto res = efgh; DELIBERATELY_SUBOPTIMAL(return std::move(res);) }());
 
 			BOOST_TEST_INFO("both lvalue and rvalue proper nouns affect eventual state");
 			BOOST_TEST_CHECK(contains(ijkl_, "ijkl"));
@@ -699,7 +725,7 @@ BOOST_AUTO_TEST_SUITE(dictionary_alltogether)
 			bcde.add_word("e");
 
 			auto cde = abcdef.intersection_with(cdefgh).intersection_with([&bcde]
-						{ auto res = bcde; return std::move(res); }());
+						{ auto res = bcde; DELIBERATELY_SUBOPTIMAL(return std::move(res);) }());
 
 			BOOST_TEST_CHECK(contains(cde, "cde"));
 			BOOST_TEST_CHECK(contains_none(cde, "abfghijkl"));
@@ -710,7 +736,7 @@ BOOST_AUTO_TEST_SUITE(dictionary_alltogether)
 					{
 						auto res = bcde;
 						res.add_proper_noun("d");
-						return std::move(res);
+						DELIBERATELY_SUBOPTIMAL(return std::move(res);)
 					}());
 			BOOST_TEST_CHECK(contains(e, "e"));
 			BOOST_TEST_CHECK(contains_none(e, "abcdfghi"));
@@ -790,7 +816,7 @@ BOOST_AUTO_TEST_SUITE(dictionary_alltogether)
 					auto res = efgh;
 					res.add_proper_noun("d");
 					res.add_proper_noun("f");
-					return std::move(res);
+					DELIBERATELY_SUBOPTIMAL(return std::move(res);)
 				}();
 			BOOST_TEST_CHECK(contains(object, "abgh"));
 			BOOST_TEST_CHECK(contains_none(object, "cdef"));
@@ -798,7 +824,7 @@ BOOST_AUTO_TEST_SUITE(dictionary_alltogether)
 
 		BOOST_TEST_INFO("+= rvalue += lvalue");
 		auto abcdefghijkl = abcd;
-		abcdefghijkl += [this] { auto res = efgh; return std::move(res); }() += ijkl;
+		abcdefghijkl += [this] { auto res = efgh; DELIBERATELY_SUBOPTIMAL(return std::move(res);) }() += ijkl;
 		BOOST_TEST_CHECK(contains(abcdefghijkl, "abcdefghijkl"));
 
 		BOOST_TEST_CONTEXT("self +=")
@@ -842,7 +868,7 @@ BOOST_AUTO_TEST_SUITE(dictionary_alltogether)
 					auto res = efgh;
 					res.add_word("d");
 					res.add_proper_noun("c");
-					return std::move(res);
+					DELIBERATELY_SUBOPTIMAL(return std::move(res);)
 				}();
 
 			BOOST_TEST_CHECK(contains(abcde, "ab"));
@@ -852,7 +878,7 @@ BOOST_AUTO_TEST_SUITE(dictionary_alltogether)
 		BOOST_TEST_CONTEXT("-= rvalue += lvalue")
 		{
 			auto object = abcdefghijkl;
-			object -= [this] { auto res = efgh; return std::move(res); }() += abcd;
+			object -= [this] { auto res = efgh; DELIBERATELY_SUBOPTIMAL(return std::move(res);) }() += abcd;
 			BOOST_TEST_CHECK(contains(object, "ijkl"));
 			BOOST_TEST_CHECK(contains_none(object, "abcdefgh"));
 		}
@@ -908,7 +934,7 @@ BOOST_AUTO_TEST_SUITE(dictionary_alltogether)
 			bcde.add_word("e");
 
 			auto cde = abcdef;
-			cde *= cdefgh *= [&bcde] { auto res = bcde; return std::move(res); } ();
+			cde *= cdefgh *= [&bcde] { auto res = bcde; DELIBERATELY_SUBOPTIMAL(return std::move(res);) } ();
 			BOOST_TEST_CHECK(contains(cde, "cde"));
 			BOOST_TEST_CHECK(contains_none(cde, "abfghijkl"));
 		}

@@ -1,6 +1,7 @@
 #include "dictionary.h"
 
 #include <iomanip>
+#include <algorithm>
 
 bool dictionary_creator::DefaultEntrySorter::operator()
 	(const std::shared_ptr<dictionary_creator::Entry> &a, const std::shared_ptr<dictionary_creator::Entry> &b) const noexcept

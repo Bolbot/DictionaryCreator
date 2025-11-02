@@ -6,12 +6,12 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <algorithm>
 
 bool simple_tests::isprintable(char character) noexcept
 {
 	return std::isprint(static_cast<unsigned char>(character));
 }
-
 
 void simple_tests::tests(const char *program_name)
 {
@@ -547,7 +547,7 @@ void simple_tests::test_dictionary_manager()
 
 	std::cout << "\t.get_random_words(7) yields:\n\t";
 	auto random_7 = dm.get_random_words(7);
-	for (const auto i: random_7)
+	for (const auto &i: random_7)
 	{
 		std::cout << "\t" << i->get_word();
 	}
@@ -580,7 +580,7 @@ void simple_tests::test_dictionary_manager()
 		return;
 	}
 
-	const auto &longest_word = *dm.get_subset(dictionary_creator::ComparisonType::Longest, 1).front();
+	const auto longest_word = *dm.get_subset(dictionary_creator::ComparisonType::Longest, 1).front();
 	if (auto l = dm.define(longest_word); l && l->is_defined())
 	{
 		std::cout << "\t.define() for longest word " << longest_word.get_word() << " worked\n";

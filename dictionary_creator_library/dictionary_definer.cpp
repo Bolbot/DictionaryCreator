@@ -4,6 +4,7 @@
 #include "json_parser.h"
 
 #include <sstream>
+#include <cstdint>
 
 std::string dictionary_creator::percent_encode(dictionary_creator::utf8_string string)
 {

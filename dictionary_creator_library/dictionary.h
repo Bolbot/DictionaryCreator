@@ -144,7 +144,7 @@ namespace dictionary_creator
 				{
 					return comparator(*aptr, *bptr);
 				}
-				else if (aptr == nullptr && bptr == nullptr)
+				else if (aptr == nullptr && bptr == nullptr && a != nullptr && b != nullptr)
 				{
 					return a->get_word() < b->get_word();
 				}

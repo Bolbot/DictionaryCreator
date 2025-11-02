@@ -2,6 +2,9 @@
 #include "fs_manager.h"
 #include "config.h"
 
+#include <chrono>
+#include <cstring>
+
 
 // GoogleAPI limits TODO:	develop a strategy for getting around the Google limit
 // 				problem: starting from some substantial amount of requests google gets exausted

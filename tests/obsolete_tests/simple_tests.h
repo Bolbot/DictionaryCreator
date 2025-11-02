@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 namespace simple_tests
 {
 	template <typename ... Args>
