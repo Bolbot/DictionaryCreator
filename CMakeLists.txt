@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.24)
 
 project(DictionaryCreator
-	VERSION 0.8.10
+	VERSION 0.8.11
 	DESCRIPTION "Soulution for parsing texts into dictionaries"
 	LANGUAGES CXX)
 
@@ -76,7 +76,7 @@ if ((${CMAKE_PROJECT_NAME} STREQUAL ${PROJECT_NAME} OR ${PROJECT_NAME}_BUILD_TES
 endif()
 
 # console application to run dictionary creator library
-add_executable(DictionaryCreatorConsoleApp main.cpp win_resource_file.rc)
+add_executable(DictionaryCreatorConsoleApp main.cpp $<$<PLATFORM_ID:Windows>:filesystem_library/windows/win_resource_file.rc>)
 target_link_libraries(DictionaryCreatorConsoleApp PRIVATE DictionaryCreator_compiler_flags dictionary_manager console_fs_manager)
 target_include_directories(DictionaryCreatorConsoleApp PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_INSTALL_INCLUDEDIR}")
 set_target_properties(DictionaryCreatorConsoleApp PROPERTIES
