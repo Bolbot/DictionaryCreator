@@ -3,7 +3,7 @@ A simple library that creates a dictionary out of user-specified text files.
 Supports definition loading, different criteria sorting, serialization, and customizable entry type for storing words.
 
 ## C++ to Rust transition
-The project is being transitioned from C++ to Rust. The C++ part is in cpp/ directory, and the Rust part will be in rust/ directory.
+The project is being transitioned from C++ to Rust. The C++ part is in **cpp/** directory, and the Rust part will be in **rust/** directory.
 
 ## Requirements
 With C++ project, you will only need C++17 compliant compiler and **Conan 2**. Conan will do the rest. It's going to pull these dependencies:
